@@ -109,6 +109,8 @@ export interface AppSettings {
   appName: string;
   schoolName: string;
   className: string;
+  classId?: string; // Mã lớp duy nhất phân lập dữ liệu (e.g. lop_9a2)
+  teacherUsername?: string; // Tài khoản giáo viên quản lý (e.g. gvcn)
   schoolYear: string;
   teacherName: string;
   teacherPhone: string;

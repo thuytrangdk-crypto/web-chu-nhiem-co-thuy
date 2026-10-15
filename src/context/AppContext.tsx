@@ -81,9 +81,31 @@ interface AppContextType {
   updateSubject: (subject: Subject) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
 
-  restoreData: (jsonData: any) => Promise<void>;
+  restoreData: (jsonData: any, confirmDifferentClass?: boolean) => Promise<{ success: boolean; message: string; backupCreated?: string }>;
   resetDemoData: () => Promise<void>;
   refreshData: () => Promise<void>;
+
+  // Supabase Cloud Sync (Multi-class isolated)
+  supabaseStatus: {
+    connected: boolean;
+    url: string;
+    table: string;
+    classKey: string;
+    usersKey: string;
+    className: string;
+    teacherUsername: string;
+    teacherName: string;
+    lastSync: string | null;
+    error: string | null;
+    hasRemoteData: boolean;
+    hasMainClassData: boolean;
+    notice: string;
+  } | null;
+  checkSupabaseStatus: () => Promise<any>;
+  syncWithSupabaseNow: () => Promise<void>;
+  pullFromSupabase: () => Promise<void>;
+  getAvailableDatasets: () => Promise<any>;
+  migrateSupabaseDataset: (sourceKey: string, confirmDifferentClass?: boolean) => Promise<any>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -151,10 +173,84 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     loadInitialData();
   }, []);
 
+  const [supabaseStatus, setSupabaseStatus] = useState<{
+    connected: boolean;
+    url: string;
+    table: string;
+    classKey: string;
+    usersKey: string;
+    className: string;
+    teacherUsername: string;
+    teacherName: string;
+    lastSync: string | null;
+    error: string | null;
+    hasRemoteData: boolean;
+    hasMainClassData: boolean;
+    notice: string;
+  } | null>(null);
+
+  const checkSupabaseStatus = useCallback(async () => {
+    try {
+      const status = await api.getSupabaseStatus();
+      setSupabaseStatus(status);
+      return status;
+    } catch (e: any) {
+      console.warn('Supabase status check failed:', e.message);
+      return null;
+    }
+  }, []);
+
+  const syncWithSupabaseNow = async () => {
+    try {
+      const res = await api.syncSupabaseNow();
+      showToast(res.message, 'success');
+      await checkSupabaseStatus();
+    } catch (e: any) {
+      showToast(e.message || 'Lỗi đồng bộ Supabase Cloud', 'error');
+    }
+  };
+
+  const pullFromSupabase = async () => {
+    try {
+      const res = await api.pullSupabase();
+      if (res.classData) {
+        setClassData(res.classData);
+      } else {
+        await refreshData();
+      }
+      showToast(res.message, 'success');
+      await checkSupabaseStatus();
+    } catch (e: any) {
+      showToast(e.message || 'Lỗi tải từ Supabase Cloud', 'error');
+    }
+  };
+
+  const getAvailableDatasets = async () => {
+    return await api.getSupabaseAvailableDatasets();
+  };
+
+  const migrateSupabaseDataset = async (sourceKey: string, confirmDifferentClass: boolean = false) => {
+    try {
+      const res = await api.migrateSupabaseDataset(sourceKey, confirmDifferentClass);
+      if (res.classData) {
+        setClassData(res.classData);
+      } else {
+        await refreshData();
+      }
+      showToast(res.message, 'success');
+      await checkSupabaseStatus();
+      return res;
+    } catch (e: any) {
+      showToast(e.message || 'Lỗi nạp từ Supabase', 'error');
+      throw e;
+    }
+  };
+
   const refreshData = async () => {
     try {
       const data = await api.getData();
       setClassData(data);
+      checkSupabaseStatus().catch(() => {});
     } catch (e: any) {
       showToast(e.message || 'Lỗi tải lại dữ liệu', 'error');
     }
@@ -678,14 +774,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     showToast('Đã xóa môn học thành công', 'info');
   };
 
-  const restoreData = async (jsonData: any) => {
+  const restoreData = async (jsonData: any, confirmDifferentClass: boolean = false) => {
     setIsLoading(true);
     try {
-      await api.restoreData(jsonData);
+      const res = await api.restoreData(jsonData, confirmDifferentClass);
       await refreshData();
-      showToast('Đã khôi phục dữ liệu lớp học thành công!', 'success');
+      showToast(res.message || 'Đã khôi phục dữ liệu lớp học thành công!', 'success');
+      return res;
     } catch (e: any) {
       showToast(e.message || 'Lỗi khôi phục dữ liệu', 'error');
+      throw e;
     } finally {
       setIsLoading(false);
     }
@@ -755,6 +853,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         restoreData,
         resetDemoData,
         refreshData,
+        supabaseStatus,
+        checkSupabaseStatus,
+        syncWithSupabaseNow,
+        pullFromSupabase,
+        getAvailableDatasets,
+        migrateSupabaseDataset,
       }}
     >
       {children}
