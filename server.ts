@@ -907,6 +907,16 @@ app.get('/api/supabase/sql-schema', (_req: Request, res: Response) => {
   }
 });
 
+// --- 404 & ERROR HANDLING MIDDLEWARE (ENSURE API ALWAYS RETURNS JSON) ---
+app.all('/api/*', (req: Request, res: Response) => {
+  res.status(404).json({ error: `API endpoint không tồn tại: ${req.method} ${req.path}` });
+});
+
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('[GVCN Server Error Handler]:', err);
+  res.status(err.status || 500).json({ error: err.message || 'Lỗi xử lý nội bộ trên máy chủ' });
+});
+
 // --- SERVER INITIALIZATION & VITE MIDDLEWARE ---
 async function startServer() {
   const isDev = process.env.NODE_ENV !== 'production';
@@ -918,11 +928,20 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.resolve(__dirname, 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.resolve(distPath, 'index.html'));
-    });
+    const distPath = path.resolve(process.cwd(), 'dist');
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get('*', (_req, res) => {
+        res.sendFile(path.resolve(distPath, 'index.html'));
+      });
+    } else {
+      console.warn('[Warning] dist directory does not exist, mounting Vite on-the-fly...');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    }
   }
 
   app.listen(PORT, '0.0.0.0', () => {
