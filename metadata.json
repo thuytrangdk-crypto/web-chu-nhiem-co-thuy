@@ -1,0 +1,6 @@
+{
+  "name": "GVCN – Quản trị lớp chủ nhiệm",
+  "description": "Hệ thống quản lý lớp chủ nhiệm toàn diện: điểm danh, sơ đồ lớp 56 chỗ, thi đua, bảng tin, vinh danh, bảng điểm và phân quyền giáo viên - học sinh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

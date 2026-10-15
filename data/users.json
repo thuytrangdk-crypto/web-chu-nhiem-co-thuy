@@ -1,0 +1,371 @@
+[
+  {
+    "id": "user-teacher-01",
+    "username": "gvcn",
+    "role": "teacher",
+    "name": "Cô Trần Thị Thu Trang",
+    "salt": "163a9df45692d4f19365c6191a2d62db",
+    "passwordHash": "a437c5207151a994f3bdc7e3601a6ed94c8a662ed5c41bee99175340417848a21e08d75cb8b8b81b8163bfdf1c3115aceabfc371c7106ac4f8ad52bffcc0ae43",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9201",
+    "username": "hs9201",
+    "role": "student",
+    "studentId": "HS9201",
+    "name": "Nguyễn Minh Anh",
+    "salt": "55b156c4cb1eac97fe2338efe9a5ab58",
+    "passwordHash": "44cd73308a71bee8015b3ef58c4db5fc703fcf3a805746485eefa277b248301846974b7937cf7ea241e95028512833ed426c15b899362e59eb5f158c4f86292a",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9202",
+    "username": "hs9202",
+    "role": "student",
+    "studentId": "HS9202",
+    "name": "Trần Đức Bảo",
+    "salt": "0799c79be61a6bf58f591f9fb0698f96",
+    "passwordHash": "68105260743855d2d8084669cb4253a34db41942cc2c27935eac0aa3230aa538a39fe32c3f39298329a0db8f371b98d4c1c523791ea0790221275fd9555eccb9",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9203",
+    "username": "hs9203",
+    "role": "student",
+    "studentId": "HS9203",
+    "name": "Lê Thị Cẩm Tú",
+    "salt": "5934c841fe466bd7b5330da6c2e74e94",
+    "passwordHash": "c3eacf17aaef77f96edec23079604569c75dedcb6771dde73f85ac425d9566467cea2596db967250803207bfe03711b02889a6a99c3740af6496828008fb1502",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9204",
+    "username": "hs9204",
+    "role": "student",
+    "studentId": "HS9204",
+    "name": "Phạm Gia Huy",
+    "salt": "d2931331a5932c03a7c86c673ca55910",
+    "passwordHash": "8a9aa4f557d3e4bf216836b1a1fc047c5c1c05dad73a1359fc50e24019d610859c10d274f48ecc32d9dc25d7d5481f46cc8d7aab6cb570b7b2a82058e7ebf799",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9205",
+    "username": "hs9205",
+    "role": "student",
+    "studentId": "HS9205",
+    "name": "Hoàng Mai Linh",
+    "salt": "5524cd9b4078f0d3ed578eb071a07969",
+    "passwordHash": "dfa5fa0a3f457993872608a1ac688ecf3bc1e661ebf0746b704858b6fabbf392dca3fba49c55a84b0bb59725e27707b01f1954a8c05ad701efe17d49cd14e873",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9206",
+    "username": "hs9206",
+    "role": "student",
+    "studentId": "HS9206",
+    "name": "Vũ Quốc Tuấn",
+    "salt": "6a00107d19904290b635877dc3ae427c",
+    "passwordHash": "1b72d0ed9f1a6cc3c0754c41b1d680fca086417665cef59caa52c6143a217a21222b701feeba3d1afb918400989224cdceaa26ddc3ff0a0cc14c36cd5e1a2f8e",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9207",
+    "username": "hs9207",
+    "role": "student",
+    "studentId": "HS9207",
+    "name": "Đặng Thảo Vy",
+    "salt": "dbd161c76d9fe02bad62d391ac762527",
+    "passwordHash": "a04bc6e05aa29ea13c8633e13186cfc4d9b3b655b44a4883b3d121447d041c82072a1597d1b56656e1089dc0eacf771eb90668e2c09a0f332c7da7d537a3c592",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9208",
+    "username": "hs9208",
+    "role": "student",
+    "studentId": "HS9208",
+    "name": "Bùi Hoàng Long",
+    "salt": "1649aee4a98ebcb8283f8a8f988c8008",
+    "passwordHash": "8f0ed7d050bd5e0e75758fb643a983c863baadc015edddbd8bc340ba84458dfa3b0b3860b7cb4bfed7446e787df453eec30a0e5c8000c79facff0857e86938aa",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9209",
+    "username": "hs9209",
+    "role": "student",
+    "studentId": "HS9209",
+    "name": "Đỗ Hải Yến",
+    "salt": "53f64c4f18c13b4e66748bb89339424e",
+    "passwordHash": "07e201b2452f4f711cc91a863978faa32376994dc2c71a502810f5e5c9abb20a5363145f31f9a041075f2afcf40f478d1bbfde4d54efffab98a96650dc4a4ef8",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9210",
+    "username": "hs9210",
+    "role": "student",
+    "studentId": "HS9210",
+    "name": "Ngô Trọng Khang",
+    "salt": "d7d1d3c3dd6554c122bd3d9028cfe7e9",
+    "passwordHash": "46c8fd9074c6a3a959b9aeb5c109722c043cae39369adbdd6cebea229f38f8bec71384de859e550ecd584ea946653894c2b0d6c3cf6b1f56143fc7cf482c0644",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9211",
+    "username": "hs9211",
+    "role": "student",
+    "studentId": "HS9211",
+    "name": "Phan Thị Diễm Hương",
+    "salt": "bef61e440fd429ebf4b0a9f5d2265d9b",
+    "passwordHash": "72e426745d9203c4eb8709b7c83a61cb419c06a1c8f092609524f9620954989c807afa569ea804f8e490e428fe6624cd8821ec674d049e4f8e9b3bd52c41249b",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9212",
+    "username": "hs9212",
+    "role": "student",
+    "studentId": "HS9212",
+    "name": "Dương Thành Đạt",
+    "salt": "08452de4b0343b09facfaa6f8d66212a",
+    "passwordHash": "85e597274d57e8458c2f2537bbfb419553f9ea17a7d8bd214d56152b8b861b7e57dcd97a66d13cdb7fc69b64b780a09afaad2e1f5d611faedbe7b133255f2ffe",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9213",
+    "username": "hs9213",
+    "role": "student",
+    "studentId": "HS9213",
+    "name": "Trương Mỹ Duyên",
+    "salt": "2c9d489a4d56acc63280d6804d378612",
+    "passwordHash": "86f75525ecb853b9c375c34b20dd9144d5fb1f7960fc7f21391e407f9b94a0d53f4a8c60075b519e17a81eca285a0c940fd57b331214b872ee30bae3ab9816c6",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9214",
+    "username": "hs9214",
+    "role": "student",
+    "studentId": "HS9214",
+    "name": "Lý Kiến Quốc",
+    "salt": "106edaf71f283c1b5eeaa3371ba429ee",
+    "passwordHash": "c67a5f209dfb99288255b7b352cc083839d9ac7f07706644b7348e3fd7fcc5e1d7bebfdf0b5d0ed5c712654f815bc68371528001371b22b17b2df5cb5eb324d6",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9215",
+    "username": "hs9215",
+    "role": "student",
+    "studentId": "HS9215",
+    "name": "Hồ Quỳnh Nga",
+    "salt": "5f45a1b2e4433d8781ef960fcc45d23e",
+    "passwordHash": "0914dd6d1a23347d2d7c8e579624a16adf633c573976c631cd162370de309f42c4778be95b7754417c5d16067878858eec9f1c915b5beb66b85338e5b0bd8150",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9216",
+    "username": "hs9216",
+    "role": "student",
+    "studentId": "HS9216",
+    "name": "Lâm Tuấn Kiệt",
+    "salt": "0f10427fc2dac1ebeab1f636479faeff",
+    "passwordHash": "f20385e2b77f7448b6a578010aee848f36290d8149c24c848c75b60f34182b97b5d49f2319fde455ba69f1f7a9126f94c01990e794351be859268f3cf7e23032",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9217",
+    "username": "hs9217",
+    "role": "student",
+    "studentId": "HS9217",
+    "name": "Võ Ngọc Hân",
+    "salt": "1397ef56640e9740f5fcf662164af832",
+    "passwordHash": "7bae52b1ed0c326097aba48899d6416bc51c3b7dd7929455274de4600d8f6fa622ce5a81cecb7fcc8c5acb65128300230971d212d550c7594ad963f841112d71",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9218",
+    "username": "hs9218",
+    "role": "student",
+    "studentId": "HS9218",
+    "name": "Đinh Nhật Nam",
+    "salt": "b556d8ded93a6757d4829893927e12f8",
+    "passwordHash": "23a08e7cd72c45f03cf2d79700372c9b5d0d34ba169f64f9bcf0dc8e85aae9462feecd7d85cfdf67a20f79e4cb7f544eec26e2bbce03b6527a219aa423098f2c",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9219",
+    "username": "hs9219",
+    "role": "student",
+    "studentId": "HS9219",
+    "name": "Mai Bảo Trâm",
+    "salt": "f53f0bfa56a9ce9569bf6c2eb9968ce0",
+    "passwordHash": "135fbf3f93aa6a7b8af24146a42ee9aa6d495089be9d6cdad9e47b97110ca01f9fba2b1945f15f64532e0dfb1243dfd35973bfe10e56011011cd960256ddc18e",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9220",
+    "username": "hs9220",
+    "role": "student",
+    "studentId": "HS9220",
+    "name": "Cao Minh Triết",
+    "salt": "1f3a17a64505841df80e081205884c91",
+    "passwordHash": "121c581491518798558a39773173857c1ecc2d5d71ad92a94c89e23d9b7278c26c721c6c18be438ddadfa356bd15de75948252fc194c8a0fd6ea2f743b0d5f3a",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9221",
+    "username": "hs9221",
+    "role": "student",
+    "studentId": "HS9221",
+    "name": "Tô Ánh Nguyệt",
+    "salt": "82fe47b2eb9b5acf2c3eefa419e028f8",
+    "passwordHash": "a9421fab408409b58ade239e6d72ba021512e228118190dea9868122b68cf6e131516aa23ee56542d774028966ba96b83bdf49cff3f6a7c8cdcaaea62caf9c92",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9222",
+    "username": "hs9222",
+    "role": "student",
+    "studentId": "HS9222",
+    "name": "Thái Hữu Phước",
+    "salt": "ee702298e5d6f37bc1a9796f16dba365",
+    "passwordHash": "aeef8f919f03d6f6c6bf9909da073ccf0b9c2fd40667d45e53d9068130fc27a78b4c4a9352da2834347ff3f1010bc5263ebe4d5c9419280a651c37c9a81c494a",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9223",
+    "username": "hs9223",
+    "role": "student",
+    "studentId": "HS9223",
+    "name": "Phùng Kim Chi",
+    "salt": "9f78a031692c8ca5729b9a2b13777c8f",
+    "passwordHash": "864ed01c05b101872f040ff613ccfc41d6f629105b6e1c51d43a36ab8d3157ffaebfe20643fc8f6b7726a8d57fa5a79d32bb51a068b79b276f5f8bca8fc9e3d5",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9224",
+    "username": "hs9224",
+    "role": "student",
+    "studentId": "HS9224",
+    "name": "Quách Tấn Tài",
+    "salt": "3a19fd866ae2c8253686e8527a239eec",
+    "passwordHash": "bd389c466392766d27e19e94800a5eb118011834ced6a9f38adb9b606f0b2c5fccefe17fcd112277c662509ed4a48eab65b75a2f7ee40b66fdfbf3cd5d9a4a49",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9225",
+    "username": "hs9225",
+    "role": "student",
+    "studentId": "HS9225",
+    "name": "Chu Thu Hà",
+    "salt": "51ffc811e84455cc1ff150f496bd32d0",
+    "passwordHash": "9e375b691860460bffff53c87d911943c4b2d1440fb2d1541195f2930075866eb97cb33792c8b31d69c22ed81681d5ed8ae0ae1a5721a85bc6bb2ca3675ceec7",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9226",
+    "username": "hs9226",
+    "role": "student",
+    "studentId": "HS9226",
+    "name": "Tạ Minh Khôi",
+    "salt": "0d697d747d7ee41af401156d5f0070e4",
+    "passwordHash": "69b07e1890ad318f0e63a792f22efd62daa7008bf396ecb03bd54daacc9d13cdef49cfcb39f6515dd7f14b24939a634a3a6ca3211a797dd2d2e844c3e7ad376f",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9227",
+    "username": "hs9227",
+    "role": "student",
+    "studentId": "HS9227",
+    "name": "Hà Thùy Dương",
+    "salt": "94b4ad0c3aa75ee1901f20bd05d21823",
+    "passwordHash": "8321a2bb2c6bdb93d9ff780b33881d532b088892588c35e0da68060473d150f3e3e01f2f29425aaafaf35628966003fc6a9ddf9683fe7415c8b60953dc0d9d5e",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9228",
+    "username": "hs9228",
+    "role": "student",
+    "studentId": "HS9228",
+    "name": "Lưu Quang Vinh",
+    "salt": "2c54865f2a171ecca5611e3d7c337e36",
+    "passwordHash": "7d5cf312b882d1f3df2273006b25146a7ffb4a26aa59858cdaff4c152b37a341a01b57c224b7805cfcaaef941f66a953a2f72d02ade54bb899ca51999dca8b08",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9229",
+    "username": "hs9229",
+    "role": "student",
+    "studentId": "HS9229",
+    "name": "Nghiêm Tuyết Mai",
+    "salt": "898564148bd8249ca5e5a12246c694a0",
+    "passwordHash": "67f257457d405d71bef0aa11b8c0f33af4d7323194315a45b30bb4d1b92e29f2d7d2741e8eaf81dea4fe62c164c9889a5c56c70c728b805b458a2430c46170fa",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9230",
+    "username": "hs9230",
+    "role": "student",
+    "studentId": "HS9230",
+    "name": "Trịnh Đăng Khoa",
+    "salt": "7700a71d3f9da24bb87db66659294777",
+    "passwordHash": "6f41df25b01eb6f84e37918c69c8e04a30b7827aaeba40ef657880bfd46370e6228b99bd4589517ae38c3d56bc9ffaf83e076b533b5665505951176bde2d1393",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9231",
+    "username": "hs9231",
+    "role": "student",
+    "studentId": "HS9231",
+    "name": "Huỳnh Khánh Linh",
+    "salt": "d30c8e785dffb7535f072f929b902e83",
+    "passwordHash": "16390a4dd60244f00c35c12d4af1ed182c30d813c548528a9051341492e3109fe4de391dd3dbc3fd832ecdc516f85918278ad2a8f58332268692737ca730b65e",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9232",
+    "username": "hs9232",
+    "role": "student",
+    "studentId": "HS9232",
+    "name": "Trần Gia Bảo",
+    "salt": "c309652c06925ae13ae5e1307d08bbe8",
+    "passwordHash": "85af0991d11acf5927e370ffa470984a5fa6458709f8b7b9abba1da9799b5e9d26af908432dfeeeaf7a7a4b64a21eea5e662b671470aed8d78e06645a08dcd19",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9233",
+    "username": "hs9233",
+    "role": "student",
+    "studentId": "HS9233",
+    "name": "Văn Thị Thanh Nhàn",
+    "salt": "390e9edc25f53dc9ec1bc9db61836ad2",
+    "passwordHash": "9ae611a39ad0db8b19cbe4d474695c4e07b727c412441f0607431d18dfa701a80317f2ebcf1f4ff9a35377fdb1254a28f948737a72008c50924067a993696533",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9234",
+    "username": "hs9234",
+    "role": "student",
+    "studentId": "HS9234",
+    "name": "Nguyễn Tấn Đạt",
+    "salt": "d1cedd686b75af934dce07c12c1f67e0",
+    "passwordHash": "2eb6b018fb9045b096802a4c864089626b7aa27cafd09e38e0968d1afebaecaccf6990eb5892ef0ced9a4a11588685639269dfe643fbeb3ef22a584395c67c2b",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9235",
+    "username": "hs9235",
+    "role": "student",
+    "studentId": "HS9235",
+    "name": "Lê Diệu Linh",
+    "salt": "43cdffd13cb7294bdd4159b5223a14c0",
+    "passwordHash": "8de8f695ba8a85a4b0e7451cd5cfcb04e60f78b5f245c18d48483dec3e677ee5aa0f9100a9a4fcbbe862261ab65732354db08c75216cc5fa9a64888ef3cf8aec",
+    "mustChangePassword": false
+  },
+  {
+    "id": "user-HS9236",
+    "username": "hs9236",
+    "role": "student",
+    "studentId": "HS9236",
+    "name": "Phạm Hồng Phúc",
+    "salt": "dd649e61a7d5c590b05703d1b5bdf115",
+    "passwordHash": "9ac9dedfb88a58166afa64131c9b2223635b6104384ada09d637b9b698959f7c66ef0ddb6f09788ce26bf9ffd573857ddd8664aaaca008e20dcd8fe33ee973e5",
+    "mustChangePassword": false
+  }
+]
