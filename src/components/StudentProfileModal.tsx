@@ -129,22 +129,10 @@ export const StudentProfileModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 overflow-hidden">
       <div className="bg-white shadow-2xl w-full h-[100dvh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
-        {/* Modal Top Bar */}
-        <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-gradient-to-r from-[#F0F7FD] to-white">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Hồ sơ học sinh · {classData.settings.className}
-          </div>
-          <button
-            onClick={closeStudentProfile}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+        <button aria-label="Đóng hồ sơ học sinh" onClick={closeStudentProfile} className="absolute top-2 right-3 z-10 p-2 rounded-lg text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
         {/* Modal Header: BIG NAME IN BEAUTIFUL OCEAN BLUE, BALANCED & CENTERED */}
-        <div className="px-4 sm:px-6 py-2 text-center shrink-0 border-b border-slate-100 bg-[#FAFDFE]">
-          <div className="inline-block px-3 py-1 rounded-full text-xs font-mono font-bold text-[#3289C7] bg-[#EAF6FF] border border-[#BDE0FE] mb-2">
+        <div className="px-10 py-2 text-center shrink-0 border-b border-slate-100 bg-[#FAFDFE]">
+          <div className="inline-block px-3 py-1 rounded-full text-xs font-mono font-bold text-[#3289C7] bg-[#EAF6FF] border border-[#BDE0FE] mb-1">
             MÃ HỌC SINH: {student.id}
           </div>
           <h2 className="text-lg sm:text-xl font-extrabold text-[#3289C7] tracking-tight">
@@ -176,7 +164,7 @@ export const StudentProfileModal: React.FC = () => {
 
         {/* 4 Main Action Tabs */}
         <div className="px-4 pt-1 shrink-0 border-b border-slate-200 bg-white">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div className="flex items-center sm:justify-center gap-2 overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveTab('attendance')}
               className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-xl border-b-2 transition-all cursor-pointer whitespace-nowrap ${
@@ -445,11 +433,12 @@ export const StudentProfileModal: React.FC = () => {
 
           {/* TAB 3: THI ĐUA */}
           {activeTab === 'discipline' && (
-            <div className={`grid grid-cols-1 gap-4 lg:h-full lg:min-h-0 ${isTeacher ? 'lg:grid-cols-[minmax(280px,0.85fr)_minmax(0,1.4fr)]' : ''}`}>
+            <div className={`grid grid-cols-1 gap-4 lg:h-full lg:min-h-0 ${isTeacher ? 'lg:grid-cols-[minmax(260px,0.62fr)_minmax(0,1.7fr)]' : ''}`}>
               {isTeacher && (
-                <form onSubmit={handleSaveRecord} className="rounded-xl border border-sky-200 bg-sky-50/50 p-4 space-y-3 lg:overflow-y-auto lg:min-h-0">
-                  <h3 className="font-bold text-sky-900">Ghi nhận sự việc thi đua</h3>
-                  <p className="text-sm text-slate-600">Ghi nhận cho: <strong>{student.fullName}</strong> · {student.id}</p>
+                <form onSubmit={handleSaveRecord} className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col gap-3 min-h-0 lg:h-full">
+                  <h3 className="font-bold text-slate-800 shrink-0">＋ Ghi nhận sự việc</h3>
+                  <div className="space-y-3 min-h-0 lg:flex-1 lg:overflow-y-auto pr-1">
+                  
                   <div className="grid grid-cols-1 gap-3">
                     <label className="text-sm font-medium">Ngày xảy ra sự việc
                       <input type="date" required value={eventDate} disabled={savingRecord} onChange={e => setEventDate(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2" />
@@ -462,45 +451,43 @@ export const StudentProfileModal: React.FC = () => {
                     </label>
                   </div>
                   <label className="block text-sm font-medium">Nội dung ghi nhận / ghi chú
-                    <textarea value={eventNote} disabled={savingRecord} onChange={e => setEventNote(e.target.value)} rows={5} placeholder="Nhập diễn biến sự việc, biện pháp hỗ trợ hoặc lời khen…" className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2" />
+                    <textarea value={eventNote} disabled={savingRecord} onChange={e => setEventNote(e.target.value)} rows={3} placeholder="Nhập diễn biến sự việc, biện pháp hỗ trợ hoặc lời khen…" className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2" />
                   </label>
                   {classData.rules.length === 0 && <p className="text-sm text-amber-800">Chưa có quy tắc thi đua. Hãy thêm quy tắc trong Cài đặt trước.</p>}
-                  <button type="submit" disabled={savingRecord || !eventRuleId || !eventDate} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingRecord ? 'Đang lưu…' : 'Lưu ghi nhận cho học sinh'}</button>
+                  </div>
+                  <button type="submit" disabled={savingRecord || !eventRuleId || !eventDate} className="shrink-0 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">{savingRecord ? 'Đang lưu…' : 'Lưu ghi nhận sự việc'}</button>
                 </form>
               )}
               <section className="flex flex-col min-w-0 lg:min-h-0 gap-3">
-                <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-3 space-y-3">
-                  <div className="flex flex-wrap items-end gap-2">
-                    <span className="text-sm font-semibold text-slate-700">Thời gian</span>
-                    <label className="text-xs text-slate-600">Từ ngày<input aria-label="Lọc lịch sử từ ngày" type="date" value={historyFrom} max={historyTo || undefined} onChange={e => setHistoryFrom(e.target.value)} className="block rounded-lg border p-1.5 mt-1" /></label>
-                    <label className="text-xs text-slate-600">Đến ngày<input aria-label="Lọc lịch sử đến ngày" type="date" value={historyTo} min={historyFrom || undefined} onChange={e => setHistoryTo(e.target.value)} className="block rounded-lg border p-1.5 mt-1" /></label>
-                    <button type="button" onClick={() => {setHistoryFrom(''); setHistoryTo('');}} className="rounded-lg bg-slate-100 px-3 py-2 text-xs">Toàn bộ</button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                <div className="p-3.5 rounded-xl bg-[#EAF6FF] border border-[#BDE0FE]">
-                  <div className="text-xs text-sky-800 font-medium">Tổng điểm trong thời gian chọn</div>
-                  <div className="text-2xl font-bold font-mono text-[#3289C7] mt-1">
-                    {currentTotalScore}đ
-                  </div>
-                  <div className="text-[11px] text-sky-600 mt-0.5">
-                    (Thay đổi: {totalDisciplineDelta > 0 ? `+${totalDisciplineDelta}` : totalDisciplineDelta}đ)
-                  </div>
-                </div>
-                <div className={`p-3.5 rounded-xl border ${tierColor}`}>
-                  <div className="text-xs font-medium">Xếp loại rèn luyện</div>
-                  <div className="text-2xl font-extrabold mt-1">{finalTier}</div>
-                  {customAdjustment && (
-                    <div className="text-[10px] mt-0.5 italic">
-                      Đã điều chỉnh: {customAdjustment.reason}
+                <div className="shrink-0 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-wrap items-center justify-between gap-4">
+                  <label className="text-xs font-bold text-slate-400">KỲ ĐÁNH GIÁ (THÁNG)
+                    <select aria-label="Kỳ đánh giá theo tháng" value={historyFrom ? historyFrom.slice(0,7) : ''} onChange={e => {
+                      const month = e.target.value;
+                      if (!month) { setHistoryFrom(''); setHistoryTo(''); return; }
+                      const [y,m] = month.split('-').map(Number);
+                      setHistoryFrom(`${month}-01`);
+                      setHistoryTo(`${month}-${new Date(y,m,0).getDate()}`);
+                    }} className="block mt-2 rounded-xl border border-slate-300 bg-white p-2 text-sm text-slate-800 font-semibold">
+                      <option value="">Tất cả thời gian</option>
+                      {Array.from(new Set(classData.disciplineRecords.filter(r => r.studentId === student.id).map(r => r.date.slice(0,7)))).sort().reverse().map(month => <option key={month} value={month}>Tháng {month.slice(5)}/{month.slice(0,4)}</option>)}
+                    </select>
+                  </label>
+                  <div className="flex items-center gap-5 ml-auto">
+                    <div className="text-right">
+                      <div className="text-xs font-bold text-slate-400">ĐIỂM THI ĐUA CÒN LẠI</div>
+                      <div className="mt-1 text-2xl font-extrabold text-emerald-600">{currentTotalScore} <span className="text-sm text-slate-400">/ {startingScore}đ</span></div>
+                      <div className="text-xs text-slate-500 mt-1">Điểm trừ: <strong className="text-rose-600">{studentDiscipline.filter(r => r.points < 0).reduce((n,r) => n+r.points,0)}đ</strong> · Thưởng: <strong className="text-emerald-600">+{studentDiscipline.filter(r => r.points > 0).reduce((n,r) => n+r.points,0)}đ</strong></div>
                     </div>
-                  )}
-                </div>
+                    <div className="border-l border-slate-200 pl-5 text-right">
+                      <div className="text-xs font-bold text-slate-400">XẾP LOẠI RÈN LUYỆN</div>
+                      <div className="mt-1 text-xl font-bold text-emerald-600">{finalTier}</div>
+                    </div>
                   </div>
                 </div>
 
               <div className="flex flex-col min-h-0 flex-1">
                 <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Lịch sử ghi nhận sự việc thi đua ({studentDiscipline.length})
+                  Lịch sử sự việc thi đua & kỷ luật ({studentDiscipline.length})
                 </h4>
                 <div tabIndex={0} aria-label="Lịch sử ghi nhận sự việc" className="min-h-0 max-h-[55vh] lg:max-h-none flex-1 overflow-auto overscroll-contain scroll-smooth rounded-xl focus:outline-sky-500" style={{ scrollbarGutter: 'stable', scrollbarWidth: 'thin' }}>
                 {studentDiscipline.length === 0 ? (
@@ -508,15 +495,15 @@ export const StudentProfileModal: React.FC = () => {
                     Chưa có sự việc thi đua nào được ghi nhận cho học sinh này.
                   </div>
                 ) : (
-                  <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                  <div className="border border-slate-200 rounded-xl shadow-xs">
                     <table className="w-full min-w-[560px] text-xs text-left">
                       <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                         <tr>
                           <th className="py-2.5 px-3">Ngày</th>
                           <th className="py-2.5 px-3">Sự việc</th>
-                          <th className="py-2.5 px-3">Nhóm</th>
+                          
                           <th className="py-2.5 px-3 text-right">Điểm (+/-)</th>
-                          <th className="py-2.5 px-3">Ghi chú</th>
+                          
                           {isTeacher && <th className="py-2.5 px-3 text-center">Xóa</th>}
                         </tr>
                       </thead>
@@ -531,8 +518,9 @@ export const StudentProfileModal: React.FC = () => {
                               </td>
                               <td className="py-2.5 px-3 font-semibold text-slate-800">
                                 {rec.ruleTitle}
+                                {rec.note && <div className="mt-1 text-slate-400 font-normal whitespace-pre-wrap break-words">{rec.note}</div>}
                               </td>
-                              <td className="py-2.5 px-3 text-slate-500">{rec.group}</td>
+                              
                               <td
                                 className={`py-2.5 px-3 text-right font-mono font-bold ${
                                   rec.points > 0 ? 'text-emerald-600' : 'text-rose-600'
@@ -540,7 +528,7 @@ export const StudentProfileModal: React.FC = () => {
                               >
                                 {rec.points > 0 ? `+${rec.points}` : rec.points}
                               </td>
-                              <td className="py-2.5 px-3 text-slate-600">{rec.note || '-'}</td>
+                              
                               {isTeacher && (
                                 <td className="py-2.5 px-3 text-center">
                                   <button
@@ -642,7 +630,7 @@ export const StudentProfileModal: React.FC = () => {
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-end">
+        <div className="px-4 py-1.5 shrink-0 border-t border-slate-100 bg-slate-50 flex items-center justify-end">
           <button
             onClick={closeStudentProfile}
             className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
