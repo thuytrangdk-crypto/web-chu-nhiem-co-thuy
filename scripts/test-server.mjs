@@ -2,11 +2,19 @@ import http from 'node:http';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 const rows = new Map(); const backups=[]; const touched=[];
-let failWrites=false;
+let failWrites=false; let mediaBucket=null;
 const mock=http.createServer(async(req,res)=>{
- const url=new URL(req.url,'http://local'); const table=url.pathname.split('/').pop(); touched.push(table);
+ const url=new URL(req.url,'http://local'); const table=url.pathname.split('/').pop();
  let text='';for await(const b of req)text+=b; const body=text?JSON.parse(text):null;
  res.setHeader('Content-Type','application/json');
+ if(url.pathname.startsWith('/storage/v1/')) {
+  if(url.pathname==='/storage/v1/bucket' && req.method==='POST') {mediaBucket={id:body.id,public:body.public};return res.end(JSON.stringify(mediaBucket));}
+  if(url.pathname.startsWith('/storage/v1/bucket/')) {if(!mediaBucket){res.writeHead(404);return res.end(JSON.stringify({message:'missing'}));}return res.end(JSON.stringify(mediaBucket));}
+  if(url.pathname.includes('/object/upload/sign/')) return res.end(JSON.stringify({url:'/object/upload/sign/mock?token=mock-only'}));
+  if(url.pathname.includes('/object/sign/')) return res.end(JSON.stringify({signedURL:'/object/sign/mock?token=mock-only'}));
+  res.writeHead(404);return res.end('{}');
+ }
+ touched.push(table);
  if(!['gvcn_private_state','gvcn_private_backups'].includes(table)){res.writeHead(500);return res.end('{}');}
  if(table==='gvcn_private_backups'){backups.push(...body);return res.end('[]');}
  const id=url.searchParams.get('id')?.replace('eq.','')||body?.id;
@@ -58,6 +66,28 @@ try{
  const studentChange=await call(a,'/auth/change-password',{method:'POST',headers:auth(slogin.body.token),body:{currentPassword:'01012012',newPassword:'StudentPassword456!'}});assert.equal(studentChange.status,200);
  assert.equal((await call(b,'/auth/login',{method:'POST',body:{username:'TEST01',password:'StudentPassword456!'}})).status,200);
  assert.equal((await call(b,'/auth/login',{method:'POST',body:{username:'test01',password:'01012012'}})).status,401);
+ // Media authorization, private storage, attachment validation and draft visibility.
+ assert.equal((await call(a,'/media/upload-url',{method:'POST',body:{name:'a.jpg',type:'image/jpeg',size:100}})).status,401);
+ assert.equal((await call(a,'/media/upload-url',{method:'POST',headers:auth(studentChange.body.token),body:{name:'a.jpg',type:'image/jpeg',size:100}})).status,403);
+ assert.equal((await call(a,'/media/upload-url',{method:'POST',headers:auth(token),body:{name:'a.svg',type:'image/svg+xml',size:100}})).status,400);
+ assert.equal((await call(a,'/media/upload-url',{method:'POST',headers:auth(token),body:{name:'a.mp4',type:'video/mp4',size:51*1024*1024}})).status,400);
+ const upload=await call(a,'/media/upload-url',{method:'POST',headers:auth(token),body:{name:'a.jpg',type:'image/jpeg',size:100}});assert.equal(upload.status,200);assert.equal(mediaBucket.public,false);
+ const attachment=upload.body.attachment;
+ data=await call(a,'/data',{headers:auth(token)});
+ const post={id:'media-test',title:'Kiểm thử ảnh',content:'Nội dung',author:'GVCN',createdAt:new Date().toISOString(),tag:'Học tập',isPinned:false,isPublished:false,attachments:[attachment]};
+ assert.equal((await call(a,'/data/update',{method:'POST',headers:{...auth(token),'If-Match':data.version},body:{announcements:[post]}})).status,200);
+ assert.equal((await call(b,'/media/view-url',{method:'POST',headers:auth(studentChange.body.token),body:{path:attachment.path}})).status,403,'draft attachment stays private');
+ assert.equal((await call(b,'/media/view-url',{method:'POST',headers:auth(token),body:{path:attachment.path}})).status,200);
+ data=await call(a,'/data',{headers:auth(token)});
+ assert.equal((await call(a,'/data/update',{method:'POST',headers:{...auth(token),'If-Match':data.version},body:{announcements:[{...post,isPublished:true}]}})).status,200);
+ assert.equal((await call(b,'/media/view-url',{method:'POST',headers:auth(studentChange.body.token),body:{path:attachment.path}})).status,200,'published attachment accessible to student');
+ assert.equal((await call(b,'/media/view-url',{method:'POST',headers:auth(studentChange.body.token),body:{path:'other-scope/'+attachment.path.split('/')[1]}})).status,400);
+ data=await call(a,'/data',{headers:auth(token)});
+ const invalid={...post,attachments:[{id:'bad',name:'bad',kind:'youtube',url:'javascript:alert(1)'}]};
+ assert.equal((await call(a,'/data/update',{method:'POST',headers:{...auth(token),'If-Match':data.version},body:{announcements:[invalid]}})).status,400);
+ const linked={...post,isPublished:true,attachments:[{id:'yt',name:'YouTube',kind:'youtube',url:'https://www.youtube.com/watch?v=dQw4w9WgXcQ'},{id:'drive',name:'Drive',kind:'drive',url:'https://drive.google.com/file/d/abcdefghijklmnop/view'}]};
+ assert.equal((await call(a,'/data/update',{method:'POST',headers:{...auth(token),'If-Match':data.version},body:{announcements:[linked]}})).status,200);
+ console.log('PASS: media teacher-only upload, private bucket, size/type limits, draft/published access, scope isolation, link validation.');
  const change=await call(a,'/auth/change-password',{method:'POST',headers:auth(token),body:{currentPassword:env.INITIAL_ADMIN_PASSWORD,newPassword:'ChangedTeacher456!'}});assert.equal(change.status,200);const newToken=change.body.token;
  assert.equal((await call(b,'/auth/me',{headers:auth(token)})).status,401,'old session revoked after password change');
  assert.equal((await call(b,'/auth/login',{method:'POST',body:{username:'gvcn',password:'giaovien123'}})).status,401,'default bypass removed');

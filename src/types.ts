@@ -81,6 +81,16 @@ export interface DisciplineRecord {
   createdAt: string;
 }
 
+export interface AnnouncementAttachment {
+  id: string;
+  kind: 'image' | 'video' | 'youtube' | 'drive';
+  name: string;
+  path?: string;
+  url?: string;
+  mimeType?: string;
+  size?: number;
+}
+
 export interface Announcement {
   id: string;
   title: string;
@@ -89,6 +99,7 @@ export interface Announcement {
   author: string;
   isPinned: boolean;
   isPublished: boolean;
+  attachments?: AnnouncementAttachment[];
   tag: 'Thông báo chung' | 'Học tập' | 'Thi đua' | 'Lịch sinh hoạt' | 'Khẩn';
 }
 

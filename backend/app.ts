@@ -2,6 +2,7 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { createInitialClassData, generateInitialSeats } from '../src/seedData.js';
+import { MEDIA_TYPES, mediaLimit, parseClipLink } from '../src/utils/media.js';
 import type { ClassData, Student } from '../src/types.js';
 
 const app = express();
@@ -96,6 +97,20 @@ function validatePatch(value: any) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw Object.assign(new Error('Dữ liệu không hợp lệ'), { status: 400 });
   for (const key of arrayKeys) if (value[key] !== undefined && !Array.isArray(value[key])) throw Object.assign(new Error(`Mục ${key} phải là danh sách`), { status: 400 });
   if (value.settings !== undefined && (!value.settings || typeof value.settings !== 'object' || Array.isArray(value.settings))) throw Object.assign(new Error('Cài đặt không hợp lệ'), { status: 400 });
+  if (value.announcements) for (const ann of value.announcements) {
+    if (ann.attachments === undefined) continue;
+    if (!Array.isArray(ann.attachments) || ann.attachments.length > 10) throw Object.assign(new Error('Mỗi thông báo tối đa 10 tệp/liên kết.'), { status: 400 });
+    for (const m of ann.attachments) {
+      let valid = m && typeof m.id === 'string' && typeof m.name === 'string' && m.name.length <= 200;
+      if (m?.kind === 'image' || m?.kind === 'video') {
+        valid = valid && validMediaPath(m.path) && !!MEDIA_TYPES[m.mimeType] && m.mimeType.startsWith(m.kind + '/') &&
+          Number.isSafeInteger(m.size) && m.size > 0 && m.size <= mediaLimit(m.mimeType);
+      } else {
+        try { const parsed = parseClipLink(m.url); valid = valid && parsed.kind === m.kind && parsed.url === m.url; } catch { valid = false; }
+      }
+      if (!valid) throw Object.assign(new Error('Tệp hoặc liên kết đính kèm không hợp lệ.'), { status: 400 });
+    }
+  }
   if (value.students) {
     const ids = new Set<string>();
     for (const s of value.students) {
@@ -214,6 +229,41 @@ function requireTeacher(req: Request, res: Response, next: NextFunction) {
 app.get('/api/public/settings', (_req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json({ schoolName: classData.settings.schoolName, className: classData.settings.className });
+});
+
+const MEDIA_BUCKET = 'gvcn-announcement-media';
+const validMediaPath = (path: unknown): path is string => typeof path === 'string' &&
+  path.startsWith(scopeId() + '/') && /^[a-zA-Z0-9_-]+\/[a-f0-9-]{36}\.(jpg|png|webp|gif|mp4|mov|webm)$/.test(path);
+app.post('/api/media/upload-url', authMiddleware, requireTeacher, async (req, res) => {
+  try {
+    const { name, type, size } = req.body;
+    if (typeof name !== 'string' || name.length > 200 || !MEDIA_TYPES[type] ||
+      !Number.isSafeInteger(size) || size <= 0 || size > mediaLimit(type))
+      return res.status(400).json({ error: 'Ảnh tối đa 10 MB, clip tối đa 50 MB. Hỗ trợ JPG, PNG, WEBP, GIF, MP4, MOV, WEBM.' });
+    const storage = db().storage;
+    const bucket = await storage.getBucket(MEDIA_BUCKET);
+    if (!bucket.data) {
+      const created = await storage.createBucket(MEDIA_BUCKET, { public: false, fileSizeLimit: 50 * 1024 * 1024, allowedMimeTypes: Object.keys(MEDIA_TYPES) });
+      if (created.error && !(await storage.getBucket(MEDIA_BUCKET)).data) throw created.error;
+    } else if (bucket.data.public) throw new Error('Kho tệp phải ở chế độ riêng tư (Private).');
+    const path = scopeId() + '/' + crypto.randomUUID() + '.' + MEDIA_TYPES[type];
+    const { data, error } = await storage.from(MEDIA_BUCKET).createSignedUploadUrl(path);
+    if (error) throw error;
+    res.json({ signedUrl: data.signedUrl, attachment: { id: crypto.randomUUID(), path, name,
+      kind: type.startsWith('image/') ? 'image' : 'video', mimeType: type, size } });
+  } catch (error: any) { res.status(503).json({ error: 'Không chuẩn bị được tải tệp: ' + error.message }); }
+});
+app.post('/api/media/view-url', authMiddleware, async (req, res) => {
+  try {
+    const path = req.body.path;
+    if (!validMediaPath(path)) return res.status(400).json({ error: 'Đường dẫn tệp không hợp lệ.' });
+    const teacher = (req as any).user.role === 'teacher';
+    const visible = classData.announcements.some(a => (teacher || a.isPublished) && a.attachments?.some(m => m.path === path));
+    if (!teacher && !visible) return res.status(403).json({ error: 'Tệp chưa được công bố cho học sinh.' });
+    const { data, error } = await db().storage.from(MEDIA_BUCKET).createSignedUrl(path, 3600);
+    if (error) throw error;
+    res.json({ url: data.signedUrl });
+  } catch (error: any) { res.status(503).json({ error: 'Không mở được tệp: ' + error.message }); }
 });
 
 // --- AUTH API ROUTES ---

@@ -302,6 +302,36 @@ function createInitialClassData() {
   };
 }
 
+// src/utils/media.ts
+var MEDIA_TYPES = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "video/mp4": "mp4",
+  "video/quicktime": "mov",
+  "video/webm": "webm"
+};
+function parseClipLink(input) {
+  const url = new URL(input.trim());
+  if (url.protocol !== "https:" || url.username || url.password || url.port) throw new Error("D\xF9ng \u0111\u01B0\u1EDDng d\u1EABn HTTPS c\u1EE7a YouTube ho\u1EB7c Google Drive.");
+  const host = url.hostname.toLowerCase();
+  if (["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"].includes(host)) {
+    const id = host === "youtu.be" ? url.pathname.slice(1).split("/")[0] : url.searchParams.get("v") || /^\/(?:shorts|embed)\/([^/]+)/.exec(url.pathname)?.[1];
+    if (!id || !/^[\w-]{11}$/.test(id)) throw new Error("\u0110\u01B0\u1EDDng d\u1EABn YouTube ch\u01B0a \u0111\xFAng.");
+    return { kind: "youtube", url: `https://www.youtube.com/watch?v=${id}` };
+  }
+  if (host === "drive.google.com") {
+    const id = /\/file\/d\/([\w-]+)/.exec(url.pathname)?.[1] || url.searchParams.get("id");
+    if (!id || !/^[\w-]{10,200}$/.test(id)) throw new Error("D\xF9ng li\xEAn k\u1EBFt chia s\u1EBB t\u1EC7p video tr\xEAn Google Drive.");
+    return { kind: "drive", url: `https://drive.google.com/file/d/${id}/view` };
+  }
+  throw new Error("Ch\u1EC9 h\u1ED7 tr\u1EE3 li\xEAn k\u1EBFt YouTube ho\u1EB7c Google Drive.");
+}
+function mediaLimit(type) {
+  return (type.startsWith("image/") ? 10 : 50) * 1024 * 1024;
+}
+
 // backend/app.ts
 var app = express();
 app.disable("x-powered-by");
@@ -423,6 +453,24 @@ function validatePatch(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw Object.assign(new Error("D\u1EEF li\u1EC7u kh\xF4ng h\u1EE3p l\u1EC7"), { status: 400 });
   for (const key of arrayKeys) if (value[key] !== void 0 && !Array.isArray(value[key])) throw Object.assign(new Error(`M\u1EE5c ${key} ph\u1EA3i l\xE0 danh s\xE1ch`), { status: 400 });
   if (value.settings !== void 0 && (!value.settings || typeof value.settings !== "object" || Array.isArray(value.settings))) throw Object.assign(new Error("C\xE0i \u0111\u1EB7t kh\xF4ng h\u1EE3p l\u1EC7"), { status: 400 });
+  if (value.announcements) for (const ann of value.announcements) {
+    if (ann.attachments === void 0) continue;
+    if (!Array.isArray(ann.attachments) || ann.attachments.length > 10) throw Object.assign(new Error("M\u1ED7i th\xF4ng b\xE1o t\u1ED1i \u0111a 10 t\u1EC7p/li\xEAn k\u1EBFt."), { status: 400 });
+    for (const m of ann.attachments) {
+      let valid = m && typeof m.id === "string" && typeof m.name === "string" && m.name.length <= 200;
+      if (m?.kind === "image" || m?.kind === "video") {
+        valid = valid && validMediaPath(m.path) && !!MEDIA_TYPES[m.mimeType] && m.mimeType.startsWith(m.kind + "/") && Number.isSafeInteger(m.size) && m.size > 0 && m.size <= mediaLimit(m.mimeType);
+      } else {
+        try {
+          const parsed = parseClipLink(m.url);
+          valid = valid && parsed.kind === m.kind && parsed.url === m.url;
+        } catch {
+          valid = false;
+        }
+      }
+      if (!valid) throw Object.assign(new Error("T\u1EC7p ho\u1EB7c li\xEAn k\u1EBFt \u0111\xEDnh k\xE8m kh\xF4ng h\u1EE3p l\u1EC7."), { status: 400 });
+    }
+  }
   if (value.students) {
     const ids = /* @__PURE__ */ new Set();
     for (const s of value.students) {
@@ -548,6 +596,48 @@ function requireTeacher(req, res, next) {
 app.get("/api/public/settings", (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.json({ schoolName: classData.settings.schoolName, className: classData.settings.className });
+});
+var MEDIA_BUCKET = "gvcn-announcement-media";
+var validMediaPath = (path) => typeof path === "string" && path.startsWith(scopeId() + "/") && /^[a-zA-Z0-9_-]+\/[a-f0-9-]{36}\.(jpg|png|webp|gif|mp4|mov|webm)$/.test(path);
+app.post("/api/media/upload-url", authMiddleware, requireTeacher, async (req, res) => {
+  try {
+    const { name, type, size } = req.body;
+    if (typeof name !== "string" || name.length > 200 || !MEDIA_TYPES[type] || !Number.isSafeInteger(size) || size <= 0 || size > mediaLimit(type))
+      return res.status(400).json({ error: "\u1EA2nh t\u1ED1i \u0111a 10 MB, clip t\u1ED1i \u0111a 50 MB. H\u1ED7 tr\u1EE3 JPG, PNG, WEBP, GIF, MP4, MOV, WEBM." });
+    const storage = db().storage;
+    const bucket = await storage.getBucket(MEDIA_BUCKET);
+    if (!bucket.data) {
+      const created = await storage.createBucket(MEDIA_BUCKET, { public: false, fileSizeLimit: 50 * 1024 * 1024, allowedMimeTypes: Object.keys(MEDIA_TYPES) });
+      if (created.error && !(await storage.getBucket(MEDIA_BUCKET)).data) throw created.error;
+    } else if (bucket.data.public) throw new Error("Kho t\u1EC7p ph\u1EA3i \u1EDF ch\u1EBF \u0111\u1ED9 ri\xEAng t\u01B0 (Private).");
+    const path = scopeId() + "/" + crypto.randomUUID() + "." + MEDIA_TYPES[type];
+    const { data, error } = await storage.from(MEDIA_BUCKET).createSignedUploadUrl(path);
+    if (error) throw error;
+    res.json({ signedUrl: data.signedUrl, attachment: {
+      id: crypto.randomUUID(),
+      path,
+      name,
+      kind: type.startsWith("image/") ? "image" : "video",
+      mimeType: type,
+      size
+    } });
+  } catch (error) {
+    res.status(503).json({ error: "Kh\xF4ng chu\u1EA9n b\u1ECB \u0111\u01B0\u1EE3c t\u1EA3i t\u1EC7p: " + error.message });
+  }
+});
+app.post("/api/media/view-url", authMiddleware, async (req, res) => {
+  try {
+    const path = req.body.path;
+    if (!validMediaPath(path)) return res.status(400).json({ error: "\u0110\u01B0\u1EDDng d\u1EABn t\u1EC7p kh\xF4ng h\u1EE3p l\u1EC7." });
+    const teacher = req.user.role === "teacher";
+    const visible = classData.announcements.some((a) => (teacher || a.isPublished) && a.attachments?.some((m) => m.path === path));
+    if (!teacher && !visible) return res.status(403).json({ error: "T\u1EC7p ch\u01B0a \u0111\u01B0\u1EE3c c\xF4ng b\u1ED1 cho h\u1ECDc sinh." });
+    const { data, error } = await db().storage.from(MEDIA_BUCKET).createSignedUrl(path, 3600);
+    if (error) throw error;
+    res.json({ url: data.signedUrl });
+  } catch (error) {
+    res.status(503).json({ error: "Kh\xF4ng m\u1EDF \u0111\u01B0\u1EE3c t\u1EC7p: " + error.message });
+  }
 });
 app.post("/api/auth/login", (req, res) => {
   const { username, password } = req.body;

@@ -25,6 +25,8 @@ import {
   Shuffle,
   RotateCcw,
 } from 'lucide-react';
+import { AnnouncementMedia, MediaEditor } from '../components/AnnouncementMedia';
+import type { AnnouncementAttachment } from '../types';
 import { Announcement, Honor, BadgeType, SeatAssignment } from '../types';
 
 export const BulletinSeatingView: React.FC = () => {
@@ -64,6 +66,10 @@ export const BulletinSeatingView: React.FC = () => {
   const [composerBadge, setComposerBadge] = useState<BadgeType>('gold_cup');
   const [composerDate, setComposerDate] = useState('2026-10-15');
   const [composerIsPublished, setComposerIsPublished] = useState(true);
+
+  const [composerAttachments, setComposerAttachments] = useState<AnnouncementAttachment[]>([]);
+  const [mediaBusy, setMediaBusy] = useState(false);
+  const [savingPost, setSavingPost] = useState(false);
 
   // --- EDIT MODAL STATE ---
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
@@ -154,7 +160,8 @@ export const BulletinSeatingView: React.FC = () => {
   };
 
   // Composer submit
-  const handleComposerSubmit = (publishImmediate: boolean) => {
+  const handleComposerSubmit = async (publishImmediate: boolean) => {
+    if (mediaBusy || savingPost) return;
     if (!composerTitle.trim()) {
       showToast('Vui lòng nhập tiêu đề', 'error');
       return;
@@ -165,14 +172,19 @@ export const BulletinSeatingView: React.FC = () => {
         showToast('Vui lòng nhập nội dung thông báo', 'error');
         return;
       }
-      addAnnouncement({
+      setSavingPost(true);
+      try {
+      await addAnnouncement({
         title: composerTitle.trim(),
         content: composerContent.trim(),
         author: user?.name || classData.settings.teacherName || 'GVCN',
         isPinned: composerIsPinned,
         isPublished: publishImmediate,
         tag: composerTag,
+        attachments: composerAttachments,
       });
+      } catch (e: any) { showToast(e.message || 'Chưa lưu được thông báo', 'error'); return; }
+      finally { setSavingPost(false); }
     } else {
       // Honor
       if (!composerStudentId) {
@@ -180,7 +192,9 @@ export const BulletinSeatingView: React.FC = () => {
         return;
       }
       const st = studentMap.get(composerStudentId);
-      addHonor({
+      setSavingPost(true);
+      try {
+      await addHonor({
         studentId: composerStudentId,
         studentName: st?.fullName || composerStudentId,
         title: composerTitle.trim(),
@@ -189,9 +203,12 @@ export const BulletinSeatingView: React.FC = () => {
         badge: composerBadge,
         isPublished: publishImmediate,
       });
+      } catch (e: any) { showToast(e.message || 'Chưa lưu được vinh danh', 'error'); return; }
+      finally { setSavingPost(false); }
     }
 
     // Reset form
+    setComposerAttachments([]);
     setComposerTitle('');
     setComposerContent('');
     setComposerIsPinned(false);
@@ -588,6 +605,7 @@ export const BulletinSeatingView: React.FC = () => {
                       <p className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">
                         {ann.content}
                       </p>
+                      <AnnouncementMedia items={ann.attachments} />
 
                       <div className="flex items-center gap-3 mt-4 text-xs text-slate-400">
                         <span>Đăng bởi: <strong className="text-slate-600">{ann.author}</strong></span>
@@ -890,6 +908,8 @@ export const BulletinSeatingView: React.FC = () => {
               />
             </div>
 
+            {composerType === 'announcement' && <MediaEditor items={composerAttachments} onChange={setComposerAttachments} busy={mediaBusy || savingPost} onBusy={setMediaBusy} />}
+
             {/* PREVIEW BOX */}
             {(composerTitle || composerContent) && (
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
@@ -906,6 +926,7 @@ export const BulletinSeatingView: React.FC = () => {
             <div className="flex items-center justify-end gap-3 pt-3">
               <button
                 type="button"
+                disabled={mediaBusy || savingPost}
                 onClick={() => handleComposerSubmit(false)}
                 className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
               >
@@ -913,11 +934,12 @@ export const BulletinSeatingView: React.FC = () => {
               </button>
               <button
                 type="button"
+                disabled={mediaBusy || savingPost}
                 onClick={() => handleComposerSubmit(true)}
                 className="px-5 py-2 bg-[#3289C7] hover:bg-[#256ea4] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Save className="w-4 h-4" />
-                Đăng công bố ngay
+                {savingPost ? 'Đang lưu...' : mediaBusy ? 'Đang tải tệp...' : 'Đăng công bố ngay'}
               </button>
             </div>
           </div>
@@ -997,7 +1019,7 @@ export const BulletinSeatingView: React.FC = () => {
       {/* EDIT ANNOUNCEMENT MODAL */}
       {editingAnnouncement && isTeacher && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-5 space-y-4 border border-slate-200 shadow-xl">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90dvh] overflow-y-auto p-5 space-y-4 border border-slate-200 shadow-xl">
             <h4 className="font-bold text-sm text-[#1E3A5F]">Chỉnh sửa thông báo</h4>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Tiêu đề</label>
@@ -1017,6 +1039,7 @@ export const BulletinSeatingView: React.FC = () => {
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs"
               />
             </div>
+            <MediaEditor items={editingAnnouncement.attachments || []} onChange={items => setEditingAnnouncement(current => current ? { ...current, attachments: items } : current)} busy={mediaBusy || savingPost} onBusy={setMediaBusy} />
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                 <input
@@ -1028,15 +1051,19 @@ export const BulletinSeatingView: React.FC = () => {
               </label>
               <div className="flex items-center gap-2">
                 <button
+                  disabled={mediaBusy || savingPost}
                   onClick={() => setEditingAnnouncement(null)}
                   className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-100 rounded-lg"
                 >
                   Hủy
                 </button>
                 <button
-                  onClick={() => {
-                    updateAnnouncement(editingAnnouncement);
-                    setEditingAnnouncement(null);
+                  disabled={mediaBusy || savingPost}
+                  onClick={async () => {
+                    setSavingPost(true);
+                    try { await updateAnnouncement(editingAnnouncement); setEditingAnnouncement(null); }
+                    catch (e: any) { showToast(e.message || 'Chưa lưu được thông báo', 'error'); }
+                    finally { setSavingPost(false); }
                   }}
                   className="px-4 py-1.5 bg-[#3289C7] text-white text-xs font-semibold rounded-lg"
                 >
