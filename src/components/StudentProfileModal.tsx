@@ -34,6 +34,8 @@ export const StudentProfileModal: React.FC = () => {
     studentProfileInitialTab || 'attendance'
   );
   const [academicSemester, setAcademicSemester] = useState<'HK1' | 'HK2'>('HK1');
+  const [historyFrom, setHistoryFrom] = useState('');
+  const [historyTo, setHistoryTo] = useState('');
   const [eventRuleId, setEventRuleId] = useState('');
   const [eventDate, setEventDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [eventNote, setEventNote] = useState('');
@@ -56,7 +58,7 @@ export const StudentProfileModal: React.FC = () => {
   const totalRecordedDays = studentAttendance.length;
 
   // Discipline statistics for this student
-  const studentDiscipline = classData.disciplineRecords.filter(d => d.studentId === student.id);
+  const studentDiscipline = classData.disciplineRecords.filter(d => d.studentId === student.id && (!historyFrom || d.date >= historyFrom) && (!historyTo || d.date <= historyTo));
   const totalDisciplineDelta = studentDiscipline.reduce((sum, d) => sum + d.points, 0);
   const startingScore = classData.settings.startingScore ?? 100;
   const currentTotalScore = startingScore + totalDisciplineDelta;
@@ -78,7 +80,7 @@ export const StudentProfileModal: React.FC = () => {
 
   // Check if teacher manually adjusted
   const periodKey = `${student.id}_total`;
-  const customAdjustment = classData.conductAdjustments?.[periodKey];
+  const customAdjustment = !historyFrom && !historyTo ? classData.conductAdjustments?.[periodKey] : undefined;
   const finalTier = customAdjustment ? customAdjustment.adjustedTier : calculatedTier;
 
   // Academic grades for this student
@@ -141,7 +143,7 @@ export const StudentProfileModal: React.FC = () => {
         </div>
 
         {/* Modal Header: BIG NAME IN BEAUTIFUL OCEAN BLUE, BALANCED & CENTERED */}
-        <div className="px-4 sm:px-6 py-3 text-left shrink-0 border-b border-slate-100 bg-[#FAFDFE]">
+        <div className="px-4 sm:px-6 py-2 text-center shrink-0 border-b border-slate-100 bg-[#FAFDFE]">
           <div className="inline-block px-3 py-1 rounded-full text-xs font-mono font-bold text-[#3289C7] bg-[#EAF6FF] border border-[#BDE0FE] mb-2">
             MÃ HỌC SINH: {student.id}
           </div>
@@ -149,7 +151,7 @@ export const StudentProfileModal: React.FC = () => {
             {student.fullName}
           </h2>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-slate-600">
+          <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-slate-600">
             <span className="font-medium">
               Giới tính: <strong className="text-slate-800">{student.gender}</strong>
             </span>
@@ -173,7 +175,7 @@ export const StudentProfileModal: React.FC = () => {
         </div>
 
         {/* 4 Main Action Tabs */}
-        <div className="px-6 pt-3 border-b border-slate-200 bg-white">
+        <div className="px-4 pt-1 shrink-0 border-b border-slate-200 bg-white">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveTab('attendance')}
@@ -226,7 +228,7 @@ export const StudentProfileModal: React.FC = () => {
         </div>
 
         {/* Tab Contents */}
-        <div className="p-6 overflow-y-auto flex-1 bg-white">
+        <div className={`flex-1 min-h-0 bg-white ${activeTab === 'discipline' ? 'p-3 sm:p-4 overflow-y-auto lg:overflow-hidden' : 'p-6 overflow-y-auto'}`}>
           {/* TAB 1: ĐIỂM DANH */}
           {activeTab === 'attendance' && (
             <div className="space-y-5">
@@ -443,12 +445,12 @@ export const StudentProfileModal: React.FC = () => {
 
           {/* TAB 3: THI ĐUA */}
           {activeTab === 'discipline' && (
-            <div className="space-y-5">
+            <div className={`grid grid-cols-1 gap-4 lg:h-full lg:min-h-0 ${isTeacher ? 'lg:grid-cols-[minmax(280px,0.85fr)_minmax(0,1.4fr)]' : ''}`}>
               {isTeacher && (
-                <form onSubmit={handleSaveRecord} className="rounded-xl border border-sky-200 bg-sky-50/50 p-4 space-y-3">
+                <form onSubmit={handleSaveRecord} className="rounded-xl border border-sky-200 bg-sky-50/50 p-4 space-y-3 lg:overflow-y-auto lg:min-h-0">
                   <h3 className="font-bold text-sky-900">Ghi nhận sự việc thi đua</h3>
                   <p className="text-sm text-slate-600">Ghi nhận cho: <strong>{student.fullName}</strong> · {student.id}</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3">
                     <label className="text-sm font-medium">Ngày xảy ra sự việc
                       <input type="date" required value={eventDate} disabled={savingRecord} onChange={e => setEventDate(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2" />
                     </label>
@@ -460,21 +462,23 @@ export const StudentProfileModal: React.FC = () => {
                     </label>
                   </div>
                   <label className="block text-sm font-medium">Nội dung ghi nhận / ghi chú
-                    <textarea value={eventNote} disabled={savingRecord} onChange={e => setEventNote(e.target.value)} rows={3} placeholder="Nhập diễn biến sự việc, biện pháp hỗ trợ hoặc lời khen…" className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2" />
+                    <textarea value={eventNote} disabled={savingRecord} onChange={e => setEventNote(e.target.value)} rows={5} placeholder="Nhập diễn biến sự việc, biện pháp hỗ trợ hoặc lời khen…" className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2" />
                   </label>
                   {classData.rules.length === 0 && <p className="text-sm text-amber-800">Chưa có quy tắc thi đua. Hãy thêm quy tắc trong Cài đặt trước.</p>}
                   <button type="submit" disabled={savingRecord || !eventRuleId || !eventDate} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingRecord ? 'Đang lưu…' : 'Lưu ghi nhận cho học sinh'}</button>
                 </form>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <div className="text-xs text-slate-500 font-medium">Điểm khởi tạo kỳ</div>
-                  <div className="text-2xl font-bold font-mono text-slate-700 mt-1">
-                    {startingScore}
+              <section className="flex flex-col min-w-0 lg:min-h-0 gap-3">
+                <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-3 space-y-3">
+                  <div className="flex flex-wrap items-end gap-2">
+                    <span className="text-sm font-semibold text-slate-700">Thời gian</span>
+                    <label className="text-xs text-slate-600">Từ ngày<input aria-label="Lọc lịch sử từ ngày" type="date" value={historyFrom} max={historyTo || undefined} onChange={e => setHistoryFrom(e.target.value)} className="block rounded-lg border p-1.5 mt-1" /></label>
+                    <label className="text-xs text-slate-600">Đến ngày<input aria-label="Lọc lịch sử đến ngày" type="date" value={historyTo} min={historyFrom || undefined} onChange={e => setHistoryTo(e.target.value)} className="block rounded-lg border p-1.5 mt-1" /></label>
+                    <button type="button" onClick={() => {setHistoryFrom(''); setHistoryTo('');}} className="rounded-lg bg-slate-100 px-3 py-2 text-xs">Toàn bộ</button>
                   </div>
-                </div>
+                  <div className="grid grid-cols-2 gap-3">
                 <div className="p-3.5 rounded-xl bg-[#EAF6FF] border border-[#BDE0FE]">
-                  <div className="text-xs text-sky-800 font-medium">Điểm tổng kết hiện tại</div>
+                  <div className="text-xs text-sky-800 font-medium">Tổng điểm trong thời gian chọn</div>
                   <div className="text-2xl font-bold font-mono text-[#3289C7] mt-1">
                     {currentTotalScore}đ
                   </div>
@@ -491,20 +495,22 @@ export const StudentProfileModal: React.FC = () => {
                     </div>
                   )}
                 </div>
-              </div>
+                  </div>
+                </div>
 
-              <div>
+              <div className="flex flex-col min-h-0 flex-1">
                 <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   Lịch sử ghi nhận sự việc thi đua ({studentDiscipline.length})
                 </h4>
+                <div tabIndex={0} aria-label="Lịch sử ghi nhận sự việc" className="min-h-0 max-h-[55vh] lg:max-h-none flex-1 overflow-auto overscroll-contain scroll-smooth rounded-xl focus:outline-sky-500" style={{ scrollbarGutter: 'stable', scrollbarWidth: 'thin' }}>
                 {studentDiscipline.length === 0 ? (
                   <div className="text-center py-8 text-xs text-slate-400 bg-slate-50 rounded-xl">
                     Chưa có sự việc thi đua nào được ghi nhận cho học sinh này.
                   </div>
                 ) : (
                   <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                    <table className="w-full min-w-[560px] text-xs text-left">
+                      <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                         <tr>
                           <th className="py-2.5 px-3">Ngày</th>
                           <th className="py-2.5 px-3">Sự việc</th>
@@ -560,7 +566,9 @@ export const StudentProfileModal: React.FC = () => {
                     </table>
                   </div>
                 )}
+                </div>
               </div>
+              </section>
             </div>
           )}
 
