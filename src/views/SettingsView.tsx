@@ -1072,7 +1072,7 @@ export const SettingsView: React.FC = () => {
                 <div>
                   <strong className="text-emerald-800 font-semibold">Chế độ phân lập dữ liệu đa lớp đang kích hoạt:</strong>{' '}
                   <span>
-                    Dữ liệu lớp hiện tại ({classData?.settings?.className}) được lưu trữ độc lập theo tài khoản giáo viên và mã lớp. Dữ liệu các lớp khác (ví dụ: Lớp 9A5 tại <code className="text-sky-700 font-mono">main_class_data</code>) được bảo toàn nguyên vẹn 100%, không bị đọc nhầm hay ghi đè.
+                    Dữ liệu lớp hiện tại ({classData?.settings?.className}) được lưu trữ độc lập theo tài khoản giáo viên và mã lớp. Ứng dụng chỉ truy cập vùng dữ liệu riêng đã cấu hình; không liệt kê hay tự nạp lớp khác.
                   </span>
                 </div>
               </div>
@@ -1605,7 +1605,7 @@ export const SettingsView: React.FC = () => {
             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 flex items-start gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
               <div>
-                <strong>Bảo toàn dữ liệu tuyệt đối:</strong> Dữ liệu của các lớp khác (như Lớp 9A5 tại <code className="font-mono text-emerald-800">main_class_data</code>) được lưu trữ độc lập trên Cloud, không bị xóa, không bị ghi đè và không tự động nạp vào lớp đang quản lý ({classData?.settings?.className}).
+                <strong>Bảo toàn dữ liệu tuyệt đối:</strong> Ứng dụng chỉ đọc và ghi vùng dữ liệu của lớp đang quản lý ({classData?.settings?.className}); các bảng cũ không được truy cập.
               </div>
             </div>
 

@@ -145,6 +145,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await api.updateData(partial);
     } catch (e: any) {
       showToast(e.message || 'Lỗi đồng bộ máy chủ', 'error');
+      try { setClassData(await api.getData()); } catch { /* keep error visible */ }
       throw e;
     }
   };

@@ -1,6 +1,20 @@
 import { ClassData, User } from './types';
 
-const TOKEN_KEY = 'gvcn_auth_token';
+const TOKEN_KEY = `gvcn_auth_token:${window.location.host}`;
+let dataVersion: string | null = null;
+async function readJson(res: Response): Promise<any> {
+  const text = await res.text();
+  let data: any;
+  try { data = JSON.parse(text); } catch {
+    throw new Error(`Máy chủ trả về HTTP ${res.status}, không phải JSON. Kiểm tra bản triển khai và API trên Vercel.`);
+  }
+  if (res.ok) {
+    const revision = res.headers.get('X-Data-Version');
+    if (revision && /\/api\/(data(?:$|\/update|\/restore|\/reset-demo)|supabase\/pull)/.test(new URL(res.url).pathname)) dataVersion = revision;
+    if (data.token) api.setToken(data.token);
+  }
+  return data;
+}
 
 export const api = {
   getToken(): string | null {
@@ -8,6 +22,8 @@ export const api = {
   },
 
   setToken(token: string, remember: boolean = true) {
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
     if (remember) {
       localStorage.setItem(TOKEN_KEY, token);
     } else {
@@ -18,6 +34,7 @@ export const api = {
   clearToken() {
     localStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(TOKEN_KEY);
+    dataVersion = null;
   },
 
   async login(username: string, password: string): Promise<{ token: string; user: User }> {
@@ -27,7 +44,7 @@ export const api = {
       body: JSON.stringify({ username, password }),
     });
 
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) {
       throw new Error(data.error || 'Đăng nhập không thành công');
     }
@@ -44,7 +61,7 @@ export const api = {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) {
       this.clearToken();
       throw new Error(data.error || 'Phiên làm việc hết hạn');
@@ -61,12 +78,13 @@ export const api = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'If-Match': dataVersion || '',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ currentPassword, newPassword }),
     });
 
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) throw new Error(data.error || 'Đổi mật khẩu thất bại');
     return data;
   },
@@ -79,12 +97,13 @@ export const api = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'If-Match': dataVersion || '',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ studentId }),
     });
 
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) throw new Error(data.error || 'Đặt lại mật khẩu thất bại');
     return data;
   },
@@ -97,7 +116,7 @@ export const api = {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) throw new Error(data.error || 'Không thể tải dữ liệu');
     return data;
   },
@@ -110,12 +129,13 @@ export const api = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'If-Match': dataVersion || '',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(updatedData),
     });
 
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) throw new Error(data.error || 'Không thể lưu dữ liệu');
   },
 
@@ -127,12 +147,13 @@ export const api = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'If-Match': dataVersion || '',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ backup: backupJson, confirmDifferentClass }),
     });
 
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) {
       const err: any = new Error(data.message || data.error || 'Khôi phục dữ liệu thất bại');
       err.status = res.status;
@@ -152,10 +173,11 @@ export const api = {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
+        'If-Match': dataVersion || '',
       },
     });
 
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) throw new Error(data.error || 'Không thể thiết lập lại dữ liệu');
   },
 
@@ -180,7 +202,7 @@ export const api = {
     const res = await fetch('/api/supabase/status', {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) throw new Error(data.error || 'Không thể kiểm tra Supabase');
     return data;
   },
@@ -193,7 +215,7 @@ export const api = {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     });
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) throw new Error(data.error || 'Đồng bộ Supabase thất bại');
     return data;
   },
@@ -206,7 +228,7 @@ export const api = {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     });
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) throw new Error(data.error || 'Tải dữ liệu từ Supabase thất bại');
     return data;
   },
@@ -232,7 +254,7 @@ export const api = {
     const res = await fetch('/api/supabase/available-datasets', {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) throw new Error(data.error || 'Không thể tải danh sách dữ liệu Supabase');
     return data;
   },
@@ -250,12 +272,13 @@ export const api = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'If-Match': dataVersion || '',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ sourceKey, confirmDifferentClass }),
     });
 
-    const data = await res.json();
+    const data = await readJson(res);
     if (!res.ok) {
       const err: any = new Error(data.message || data.error || 'Chuyển đổi dữ liệu thất bại');
       err.status = res.status;

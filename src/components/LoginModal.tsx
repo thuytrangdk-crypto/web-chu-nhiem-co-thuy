@@ -15,11 +15,11 @@ export const LoginModal: React.FC = () => {
   const [roleMode, setRoleMode] = useState<'teacher' | 'student'>('teacher');
 
   // Teacher fields
-  const [teacherPassword, setTeacherPassword] = useState('giaovien123');
+  const [teacherPassword, setTeacherPassword] = useState('');
 
   // Student fields
-  const [studentUsername, setStudentUsername] = useState('HS9201');
-  const [studentPassword, setStudentPassword] = useState('14032011');
+  const [studentUsername, setStudentUsername] = useState('');
+  const [studentPassword, setStudentPassword] = useState('');
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -144,16 +144,7 @@ export const LoginModal: React.FC = () => {
                   <KeyRound className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
                 </div>
                 <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
-                  <span>
-                    Mật khẩu mặc định:{' '}
-                    <button
-                      type="button"
-                      onClick={() => setTeacherPassword('giaovien123')}
-                      className="font-mono text-[#008AE6] font-semibold hover:underline cursor-pointer"
-                    >
-                      giaovien123
-                    </button>
-                  </span>
+                  <span>Dùng mật khẩu riêng đã thiết lập cho ứng dụng.</span>
                 </div>
               </div>
 
