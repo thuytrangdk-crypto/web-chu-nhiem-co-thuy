@@ -26,6 +26,7 @@ export const StudentProfileModal: React.FC = () => {
     closeStudentProfile,
     resetStudentPassword,
     deleteDisciplineRecord,
+    addDisciplineRecord,
     showToast,
   } = useApp();
 
@@ -33,6 +34,10 @@ export const StudentProfileModal: React.FC = () => {
     studentProfileInitialTab || 'attendance'
   );
   const [academicSemester, setAcademicSemester] = useState<'HK1' | 'HK2'>('HK1');
+  const [eventRuleId, setEventRuleId] = useState('');
+  const [eventDate, setEventDate] = useState(() => new Date().toLocaleDateString('en-CA'));
+  const [eventNote, setEventNote] = useState('');
+  const [savingRecord, setSavingRecord] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
 
   if (!selectedStudentId || !classData) return null;
@@ -98,13 +103,34 @@ export const StudentProfileModal: React.FC = () => {
     }
   };
 
+  const handleSaveRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isTeacher || savingRecord) return;
+    const rule = classData.rules.find(r => r.id === eventRuleId);
+    if (!rule || !eventDate) {
+      showToast('Vui lòng chọn ngày và quy tắc thi đua', 'error');
+      return;
+    }
+    setSavingRecord(true);
+    try {
+      await addDisciplineRecord({ studentId: student.id, ruleId: rule.id,
+        ruleTitle: rule.title, group: rule.group, points: rule.points,
+        date: eventDate, note: eventNote.trim() });
+      setEventNote('');
+    } catch (error: any) {
+      showToast(error.message || 'Không thể lưu ghi nhận. Vui lòng thử lại.', 'error');
+    } finally {
+      setSavingRecord(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-3 sm:p-5 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl border border-sky-100 max-w-3xl w-full overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 overflow-hidden">
+      <div className="bg-white shadow-2xl w-full h-[100dvh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
         {/* Modal Top Bar */}
         <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-gradient-to-r from-[#F0F7FD] to-white">
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Hồ sơ học sinh · Lớp {classData.settings.className}
+            Hồ sơ học sinh · {classData.settings.className}
           </div>
           <button
             onClick={closeStudentProfile}
@@ -115,15 +141,15 @@ export const StudentProfileModal: React.FC = () => {
         </div>
 
         {/* Modal Header: BIG NAME IN BEAUTIFUL OCEAN BLUE, BALANCED & CENTERED */}
-        <div className="px-6 py-6 text-center border-b border-slate-100 bg-[#FAFDFE]">
+        <div className="px-4 sm:px-6 py-3 text-left shrink-0 border-b border-slate-100 bg-[#FAFDFE]">
           <div className="inline-block px-3 py-1 rounded-full text-xs font-mono font-bold text-[#3289C7] bg-[#EAF6FF] border border-[#BDE0FE] mb-2">
             MÃ HỌC SINH: {student.id}
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#3289C7] tracking-tight">
+          <h2 className="text-lg sm:text-xl font-extrabold text-[#3289C7] tracking-tight">
             {student.fullName}
           </h2>
 
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mt-3 text-xs sm:text-sm text-slate-600">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-slate-600">
             <span className="font-medium">
               Giới tính: <strong className="text-slate-800">{student.gender}</strong>
             </span>
@@ -418,6 +444,28 @@ export const StudentProfileModal: React.FC = () => {
           {/* TAB 3: THI ĐUA */}
           {activeTab === 'discipline' && (
             <div className="space-y-5">
+              {isTeacher && (
+                <form onSubmit={handleSaveRecord} className="rounded-xl border border-sky-200 bg-sky-50/50 p-4 space-y-3">
+                  <h3 className="font-bold text-sky-900">Ghi nhận sự việc thi đua</h3>
+                  <p className="text-sm text-slate-600">Ghi nhận cho: <strong>{student.fullName}</strong> · {student.id}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label className="text-sm font-medium">Ngày xảy ra sự việc
+                      <input type="date" required value={eventDate} disabled={savingRecord} onChange={e => setEventDate(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2" />
+                    </label>
+                    <label className="text-sm font-medium">Quy tắc thi đua
+                      <select required value={eventRuleId} disabled={savingRecord} onChange={e => setEventRuleId(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2">
+                        <option value="">Chọn sự việc / quy tắc</option>
+                        {classData.rules.map(rule => <option key={rule.id} value={rule.id}>{rule.title} ({rule.points > 0 ? '+' : ''}{rule.points} điểm)</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  <label className="block text-sm font-medium">Nội dung ghi nhận / ghi chú
+                    <textarea value={eventNote} disabled={savingRecord} onChange={e => setEventNote(e.target.value)} rows={3} placeholder="Nhập diễn biến sự việc, biện pháp hỗ trợ hoặc lời khen…" className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2" />
+                  </label>
+                  {classData.rules.length === 0 && <p className="text-sm text-amber-800">Chưa có quy tắc thi đua. Hãy thêm quy tắc trong Cài đặt trước.</p>}
+                  <button type="submit" disabled={savingRecord || !eventRuleId || !eventDate} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingRecord ? 'Đang lưu…' : 'Lưu ghi nhận cho học sinh'}</button>
+                </form>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                   <div className="text-xs text-slate-500 font-medium">Điểm khởi tạo kỳ</div>
