@@ -3,20 +3,48 @@ import { ClassData, User } from './types';
 const TOKEN_KEY = `gvcn_auth_token:${window.location.host}`;
 let dataVersion: string | null = null;
 async function readJson(res: Response): Promise<any> {
-  const text = await res.text();
-  let data: any;
-  try { data = JSON.parse(text); } catch {
-    throw new Error(`Máy chủ trả về HTTP ${res.status}, không phải JSON. Kiểm tra bản triển khai và API trên Vercel.`);
+  const contentType = res.headers.get('content-type') || '';
+  const isJson = contentType.toLowerCase().includes('application/json');
+
+  if (!isJson) {
+    const rawText = await res.text();
+    const cleanText = rawText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const snippet = cleanText.length > 250 ? cleanText.slice(0, 250) + '...' : cleanText;
+
+    if (!res.ok) {
+      throw new Error(`Máy chủ báo lỗi HTTP ${res.status}${snippet ? `: ${snippet}` : ''}`);
+    } else {
+      throw new Error(`Máy chủ trả về HTTP ${res.status} dạng ${contentType || 'HTML/văn bản'} thay vì JSON. Đảm bảo yêu cầu /api/... đến đúng backend Express và không bị chuyển sang trang giao diện.`);
+    }
   }
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch (err: any) {
+    throw new Error(`Không thể giải mã dữ liệu JSON từ máy chủ (HTTP ${res.status}): ${err.message}`);
+  }
+
   if (res.ok) {
     const revision = res.headers.get('X-Data-Version');
-    if (revision && /\/api\/(data(?:$|\/update|\/restore|\/reset-demo)|supabase\/pull)/.test(new URL(res.url).pathname)) dataVersion = revision;
-    if (data.token) api.setToken(data.token);
+    if (revision && /\/api\/(data(?:$|\/update|\/restore|\/reset-demo)|supabase\/pull)/.test(new URL(res.url, window.location.origin).pathname)) {
+      dataVersion = revision;
+    }
+    if (data && data.token) api.setToken(data.token);
   }
+
   return data;
 }
 
 export const api = {
+  async getPublicSettings(): Promise<{ schoolName: string; className: string }> {
+    const res = await fetch('/api/public/settings', { cache: 'no-store' });
+    const data = await readJson(res);
+    if (!res.ok) {
+      throw new Error(data?.error || `Không thể tải thông tin trường lớp (HTTP ${res.status})`);
+    }
+    return data;
+  },
   getToken(): string | null {
     return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
   },

@@ -261,10 +261,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsLoading(true);
     try {
       const res = await api.login(username, password);
-      setUser(res.user);
       const data = await api.getData();
       setClassData(data);
-      showToast(`Xin chào ${res.user.name}! Đăng nhập thành công.`, 'success');
+      const teacherName = (res.user.role === 'teacher' ? data?.settings?.teacherName : null) || res.user.name;
+      const updatedUser = res.user.role === 'teacher' && data?.settings?.teacherName
+        ? { ...res.user, name: data.settings.teacherName }
+        : res.user;
+      setUser(updatedUser);
+      showToast(`Xin chào ${teacherName}! Đăng nhập thành công.`, 'success');
       if (res.user.role === 'student') {
         setActiveTab('bulletin_seating'); // Default student to bulletin & seating or personal profile
       } else {

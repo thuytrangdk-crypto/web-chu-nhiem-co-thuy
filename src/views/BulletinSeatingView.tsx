@@ -318,7 +318,7 @@ export const BulletinSeatingView: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-base text-[#1E3A5F]">
-                  Sơ đồ lớp học {classData.settings.className} (56 chỗ ngồi)
+                  Sơ đồ lớp học {classData.settings.className.replace(/^lớp\s*/i, '')} (56 chỗ ngồi)
                 </h3>
                 {isTeacher && (
                   <span className="text-[11px] font-medium text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
@@ -665,7 +665,7 @@ export const BulletinSeatingView: React.FC = () => {
                 <Sparkles className="w-3.5 h-3.5" /> Bảng vàng danh dự
               </div>
               <h3 className="text-xl font-extrabold tracking-tight">
-                Vinh danh học sinh xuất sắc lớp {classData.settings.className}
+                Vinh danh học sinh xuất sắc lớp {classData.settings.className.replace(/^lớp\s*/i, '')}
               </h3>
               <p className="text-xs text-amber-100 mt-1">
                 Ghi nhận những thành tích nổi bật và tấm gương chăm ngoan tiêu biểu

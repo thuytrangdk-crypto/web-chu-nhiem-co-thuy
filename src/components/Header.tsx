@@ -52,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
 
         {/* Center: Contextual Class & Homeroom Info (Single-line clean unboxed text) */}
         <div className="hidden lg:flex items-center gap-3 text-xs text-slate-600 bg-[#EAF6FF]/50 px-3.5 py-1.5 rounded-xl border border-[#D0E7F9]">
-          <span className="font-bold text-[#1E3A5F]">Lớp {settings?.className || '10A1'}</span>
+          <span className="font-bold text-[#1E3A5F]">Lớp {(settings?.className || '10A1').replace(/^lớp\s*/i, '')}</span>
           <span className="text-slate-300" aria-hidden="true">·</span>
           <span>GVCN: <strong className="text-slate-800">{settings?.teacherName || 'Thầy/Cô'}</strong></span>
           <span className="text-slate-300" aria-hidden="true">·</span>

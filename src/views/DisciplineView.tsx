@@ -179,7 +179,7 @@ export const DisciplineView: React.FC = () => {
             Quản lý Thi đua & Kết quả rèn luyện
           </h2>
           <p className="text-xs text-slate-500">
-            Ghi nhận nề nếp, chuyên cần, phong trào và tổng kết rèn luyện lớp {classData.settings.className}
+            Ghi nhận nề nếp, chuyên cần, phong trào và tổng kết rèn luyện lớp {classData.settings.className.replace(/^lớp\s*/i, '')}
           </p>
         </div>
 

@@ -10,6 +10,8 @@ import {
   Loader2,
 } from 'lucide-react';
 
+import { api } from '../api';
+
 export const LoginModal: React.FC = () => {
   const { login } = useApp();
   const [roleMode, setRoleMode] = useState<'teacher' | 'student'>('teacher');
@@ -25,17 +27,23 @@ export const LoginModal: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const [publicSettings, setPublicSettings] = useState<{ schoolName: string; className: string } | null>(null);
-  const [settingsError, setSettingsError] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+
   useEffect(() => {
-    const controller = new AbortController();
-    fetch('/api/public/settings', { cache: 'no-store', signal: controller.signal })
-      .then(async response => {
-        if (!response.ok) throw new Error('Không tải được thông tin lớp');
-        return response.json();
+    let isMounted = true;
+    api.getPublicSettings()
+      .then(data => {
+        if (isMounted) {
+          setPublicSettings(data);
+          setSettingsError(null);
+        }
       })
-      .then(data => setPublicSettings(data))
-      .catch(error => { if (error.name !== 'AbortError') setSettingsError(true); });
-    return () => controller.abort();
+      .catch(err => {
+        if (isMounted) {
+          setSettingsError(err.message || 'Không tải được thông tin lớp');
+        }
+      });
+    return () => { isMounted = false; };
   }, []);
   const schoolName = publicSettings?.schoolName || '';
   const className = publicSettings?.className || '';
@@ -130,11 +138,22 @@ export const LoginModal: React.FC = () => {
             </button>
           </div>
 
+          {/* Server Settings Status Warning */}
+          {settingsError && !error && (
+            <div className="mb-4 p-3.5 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-xl flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-1">
+                <p className="font-semibold text-amber-950">Chưa tải được thông tin trường, lớp</p>
+                <p className="text-amber-800 break-words">{settingsError}</p>
+              </div>
+            </div>
+          )}
+
           {/* Error Message */}
           {error && (
             <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-              <span>{error}</span>
+              <span className="break-words">{error}</span>
             </div>
           )}
 

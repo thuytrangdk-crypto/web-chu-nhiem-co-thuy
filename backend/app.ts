@@ -131,7 +131,16 @@ async function load(req: Request) {
   const { data, error } = await db().from('gvcn_private_state').select('*').eq('id', scopeId()).maybeSingle();
   if (error) throw new Error(`Không đọc được vùng dữ liệu riêng: ${error.message}. Kiểm tra SQL thiết lập và khóa backend.`);
   exists = !!data; version = data?.version || 0; lastSavedAt = data?.updated_at || null;
-  if (data) { validateClass(data.data.classData); classData = data.data.classData; users = data.data.users; }
+  if (data) {
+    validateClass(data.data.classData);
+    classData = data.data.classData;
+    users = data.data.users;
+    const teacherUser = users.find(u => u.role === 'teacher');
+    if (teacherUser && classData.settings?.teacherName && teacherUser.name !== classData.settings.teacherName) {
+      teacherUser.name = classData.settings.teacherName;
+      dirty = true;
+    }
+  }
   else {
     // No startup write and no legacy reads. First creation requires the configured admin password.
     const password = process.env.INITIAL_ADMIN_PASSWORD;
@@ -287,13 +296,14 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
 
   const token = signSession(targetUser);
 
+  const teacherName = classData?.settings?.teacherName;
   res.json({
     token,
     user: {
       id: targetUser.id,
       username: targetUser.username,
       role: targetUser.role,
-      name: targetUser.name,
+      name: targetUser.role === 'teacher' && teacherName ? teacherName : targetUser.name,
       studentId: targetUser.studentId,
       mustChangePassword: targetUser.mustChangePassword,
     },
@@ -307,11 +317,12 @@ app.get('/api/auth/me', authMiddleware, (req: Request, res: Response) => {
   if (!user) {
     return res.status(404).json({ error: 'Không tìm thấy thông tin tài khoản' });
   }
+  const teacherName = classData?.settings?.teacherName;
   res.json({
     id: user.id,
     username: user.username,
     role: user.role,
-    name: user.name,
+    name: user.role === 'teacher' && teacherName ? teacherName : user.name,
     studentId: user.studentId,
     mustChangePassword: user.mustChangePassword,
   });
@@ -458,7 +469,13 @@ app.post('/api/data/update', authMiddleware, requireTeacher, (req: Request, res:
   const updatedData = req.body as Partial<ClassData>;
   validatePatch(updatedData);
 
-  if (updatedData.settings) classData.settings = { ...classData.settings, ...updatedData.settings };
+  if (updatedData.settings) {
+    classData.settings = { ...classData.settings, ...updatedData.settings };
+    if (updatedData.settings.teacherName) {
+      const teacherUser = users.find(u => u.role === 'teacher');
+      if (teacherUser) teacherUser.name = updatedData.settings.teacherName;
+    }
+  }
   if (updatedData.students) {
     classData.students = updatedData.students;
     // Synchronize user accounts for any newly added students
@@ -620,8 +637,8 @@ app.get('/api/supabase/sql-schema', authMiddleware, requireTeacher, (_req, res) 
 });
 
 // --- 404 & ERROR HANDLING MIDDLEWARE (ENSURE API ALWAYS RETURNS JSON) ---
-app.all('/api/*', (req: Request, res: Response) => {
-  res.status(404).json({ error: `API endpoint không tồn tại: ${req.method} ${req.path}` });
+app.all(/^\/api(\/.*)?$/, (req: Request, res: Response) => {
+  res.status(404).json({ error: `API endpoint không tồn tại: ${req.method} ${req.originalUrl}` });
 });
 
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

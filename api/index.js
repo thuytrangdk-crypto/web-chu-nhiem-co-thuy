@@ -280,7 +280,7 @@ function createInitialClassData() {
       schoolName: "Tr\u01B0\u1EDDng THCS \u0110\u1ED3ng Kh\u1EDFi",
       className: "L\u1EDBp 9A2",
       schoolYear: "2025 - 2026",
-      teacherName: "C\xF4 Tr\u1EA7n Th\u1ECB Thu Trang",
+      teacherName: "C\xF4 Nguy\u1EC5n Th\u1ECB Thu Th\u1EE7y",
       teacherPhone: "0912 345 678",
       teacherEmail: "thuytrangdk@gmail.com",
       startingScore: 100,
@@ -497,6 +497,11 @@ async function load(req) {
     validateClass(data.data.classData);
     classData = data.data.classData;
     users = data.data.users;
+    const teacherUser = users.find((u) => u.role === "teacher");
+    if (teacherUser && classData.settings?.teacherName && teacherUser.name !== classData.settings.teacherName) {
+      teacherUser.name = classData.settings.teacherName;
+      dirty = true;
+    }
   } else {
     const password = process.env.INITIAL_ADMIN_PASSWORD;
     if (req.originalUrl.split("?")[0] !== "/api/auth/login" || req.method !== "POST" || !password || password.length < 12 || req.body?.username !== "gvcn" || typeof req.body?.password !== "string" || !safeEqual(req.body.password, password))
@@ -653,13 +658,14 @@ app.post("/api/auth/login", (req, res) => {
     return res.status(401).json({ error: "T\xEAn \u0111\u0103ng nh\u1EADp ho\u1EB7c m\u1EADt kh\u1EA9u kh\xF4ng ch\xEDnh x\xE1c" });
   }
   const token = signSession(targetUser);
+  const teacherName = classData?.settings?.teacherName;
   res.json({
     token,
     user: {
       id: targetUser.id,
       username: targetUser.username,
       role: targetUser.role,
-      name: targetUser.name,
+      name: targetUser.role === "teacher" && teacherName ? teacherName : targetUser.name,
       studentId: targetUser.studentId,
       mustChangePassword: targetUser.mustChangePassword
     }
@@ -671,11 +677,12 @@ app.get("/api/auth/me", authMiddleware, (req, res) => {
   if (!user) {
     return res.status(404).json({ error: "Kh\xF4ng t\xECm th\u1EA5y th\xF4ng tin t\xE0i kho\u1EA3n" });
   }
+  const teacherName = classData?.settings?.teacherName;
   res.json({
     id: user.id,
     username: user.username,
     role: user.role,
-    name: user.name,
+    name: user.role === "teacher" && teacherName ? teacherName : user.name,
     studentId: user.studentId,
     mustChangePassword: user.mustChangePassword
   });
@@ -781,7 +788,13 @@ app.get("/api/data", authMiddleware, (req, res) => {
 app.post("/api/data/update", authMiddleware, requireTeacher, (req, res) => {
   const updatedData = req.body;
   validatePatch(updatedData);
-  if (updatedData.settings) classData.settings = { ...classData.settings, ...updatedData.settings };
+  if (updatedData.settings) {
+    classData.settings = { ...classData.settings, ...updatedData.settings };
+    if (updatedData.settings.teacherName) {
+      const teacherUser = users.find((u) => u.role === "teacher");
+      if (teacherUser) teacherUser.name = updatedData.settings.teacherName;
+    }
+  }
   if (updatedData.students) {
     classData.students = updatedData.students;
     classData.students.forEach((student) => {
@@ -942,8 +955,8 @@ app.post("/api/supabase/migrate-dataset", authMiddleware, requireTeacher, (_req,
 app.get("/api/supabase/sql-schema", authMiddleware, requireTeacher, (_req, res) => {
   res.type("text/plain").send("Xem file supabase_setup_private.sql trong b\u1ED9 m\xE3 \u0111\xE3 s\u1EEDa.");
 });
-app.all("/api/*", (req, res) => {
-  res.status(404).json({ error: `API endpoint kh\xF4ng t\u1ED3n t\u1EA1i: ${req.method} ${req.path}` });
+app.all(/^\/api(\/.*)?$/, (req, res) => {
+  res.status(404).json({ error: `API endpoint kh\xF4ng t\u1ED3n t\u1EA1i: ${req.method} ${req.originalUrl}` });
 });
 app.use((err, _req, res, _next) => {
   console.error("[GVCN Server Error Handler]:", err);

@@ -301,7 +301,7 @@ export function createInitialClassData(): ClassData {
       schoolName: 'Trường THCS Đồng Khởi',
       className: 'Lớp 9A2',
       schoolYear: '2025 - 2026',
-      teacherName: 'Cô Trần Thị Thu Trang',
+      teacherName: 'Cô Nguyễn Thị Thu Thủy',
       teacherPhone: '0912 345 678',
       teacherEmail: 'thuytrangdk@gmail.com',
       startingScore: 100,

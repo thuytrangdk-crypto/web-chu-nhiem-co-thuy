@@ -133,7 +133,7 @@ export const OverviewView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
         <div>
           <h2 className="text-lg font-bold text-[#1E3A5F]">
-            Tổng quan lớp {classData.settings.className}
+            Tổng quan lớp {classData.settings.className.replace(/^lớp\s*/i, '')}
           </h2>
           <p className="text-xs text-slate-500">
             Dữ liệu thống kê thời gian thực từ hoạt động của lớp

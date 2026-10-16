@@ -210,7 +210,7 @@ export const StudentsView: React.FC = () => {
             Quản lý học sinh ({students.length} học sinh)
           </h2>
           <p className="text-xs text-slate-500">
-            Hồ sơ học sinh lớp {classData.settings.className} · Năm học {classData.settings.schoolYear}
+            Hồ sơ học sinh lớp {classData.settings.className.replace(/^lớp\s*/i, '')} · Năm học {classData.settings.schoolYear}
           </p>
         </div>
 

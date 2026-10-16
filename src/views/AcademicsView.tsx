@@ -179,7 +179,7 @@ export const AcademicsView: React.FC = () => {
             Quản lý Học tập & Sổ điểm môn học
           </h2>
           <p className="text-xs text-slate-500">
-            Học kỳ {semester === 'HK1' ? '1' : '2'} · Lớp {classData.settings.className} · Năm học {classData.settings.schoolYear}
+            Học kỳ {semester === 'HK1' ? '1' : '2'} · Lớp {classData.settings.className.replace(/^lớp\s*/i, '')} · Năm học {classData.settings.schoolYear}
           </p>
         </div>
 
