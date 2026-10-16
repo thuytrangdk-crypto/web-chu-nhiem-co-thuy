@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   GraduationCap,
@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 export const LoginModal: React.FC = () => {
-  const { login, isLoading, classData } = useApp();
+  const { login } = useApp();
   const [roleMode, setRoleMode] = useState<'teacher' | 'student'>('teacher');
 
   // Teacher fields
@@ -24,8 +24,21 @@ export const LoginModal: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const schoolName = classData?.settings?.schoolName || 'Trường THCS Đồng Khởi';
-  const className = classData?.settings?.className || 'Lớp 9A2';
+  const [publicSettings, setPublicSettings] = useState<{ schoolName: string; className: string } | null>(null);
+  const [settingsError, setSettingsError] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('/api/public/settings', { cache: 'no-store', signal: controller.signal })
+      .then(async response => {
+        if (!response.ok) throw new Error('Không tải được thông tin lớp');
+        return response.json();
+      })
+      .then(data => setPublicSettings(data))
+      .catch(error => { if (error.name !== 'AbortError') setSettingsError(true); });
+    return () => controller.abort();
+  }, []);
+  const schoolName = publicSettings?.schoolName || '';
+  const className = publicSettings?.className || '';
 
   const handleTeacherSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +60,7 @@ export const LoginModal: React.FC = () => {
   const handleStudentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!studentUsername.trim() || !studentPassword.trim()) {
-      setError('Vui lòng chọn học sinh và nhập mật khẩu ngày sinh');
+      setError('Vui lòng nhập ID học sinh và mật khẩu');
       return;
     }
     setError(null);
@@ -55,7 +68,7 @@ export const LoginModal: React.FC = () => {
     try {
       await login(studentUsername.trim(), studentPassword.trim());
     } catch (err: any) {
-      setError(err.message || 'Mã học sinh hoặc ngày sinh không chính xác');
+      setError(err.message || 'ID học sinh hoặc mật khẩu không chính xác');
     } finally {
       setSubmitting(false);
     }
@@ -76,7 +89,7 @@ export const LoginModal: React.FC = () => {
           </h1>
 
           <p className="text-sm font-medium text-white/95 mt-1.5 tracking-wide">
-            {schoolName} · {className}
+            {publicSettings ? [schoolName, className].filter(Boolean).join(' · ') || 'Hệ thống quản lý lớp học' : settingsError ? 'Chưa tải được thông tin trường, lớp' : 'Đang tải thông tin trường, lớp...'}
           </p>
         </div>
 
@@ -172,54 +185,42 @@ export const LoginModal: React.FC = () => {
           {roleMode === 'student' && (
             <form onSubmit={handleStudentSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Chọn học sinh lớp {className}
+                <label htmlFor="student-id" className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  ID học sinh
                 </label>
                 <div className="relative">
-                  <select
+                  <input
+                    id="student-id"
+                    type="text"
                     value={studentUsername}
-                    onChange={(e) => {
-                      setStudentUsername(e.target.value);
-                      const st = classData?.students?.find(
-                        (s) => s.id.toLowerCase() === e.target.value.toLowerCase()
-                      );
-                      if (st) {
-                        setStudentPassword(st.dob.replace(/[^0-9]/g, ''));
-                      }
-                    }}
+                    onChange={(e) => setStudentUsername(e.target.value)}
+                    placeholder="Nhập mã hồ sơ học sinh (ví dụ: HS1040)"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    required
                     className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#008AE6] focus:border-transparent bg-slate-50/70"
-                  >
-                    {classData?.students?.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.id} - {s.fullName} ({s.dob})
-                      </option>
-                    )) || (
-                      <>
-                        <option value="HS9201">HS9201 - Nguyễn Minh Anh (14/03/2011)</option>
-                        <option value="HS9202">HS9202 - Trần Đức Bảo (22/05/2011)</option>
-                        <option value="HS9204">HS9204 - Phạm Gia Huy (30/09/2011)</option>
-                      </>
-                    )}
-                  </select>
+                  />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Mật khẩu học sinh (Ngày sinh DDMMYYYY)
+                  Mật khẩu học sinh
                 </label>
                 <div className="relative">
                   <input
                     type="password"
                     value={studentPassword}
                     onChange={(e) => setStudentPassword(e.target.value)}
-                    placeholder="Nhập ngày sinh (Ví dụ: 14032011)"
+                    placeholder="Nhập mật khẩu học sinh"
+                    autoComplete="current-password"
                     className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#008AE6] focus:border-transparent bg-slate-50/70 pr-10 font-mono"
                   />
                   <KeyRound className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1.5">
-                  Mật khẩu khởi tạo là ngày sinh định dạng <span className="font-mono text-slate-700 font-semibold">DDMMYYYY</span>.
+                  Mật khẩu khởi tạo là ngày sinh định dạng <span className="font-mono text-slate-700 font-semibold">DDMMYYYY</span>. Nếu đã đổi mật khẩu, hãy dùng mật khẩu mới.
                 </p>
               </div>
 

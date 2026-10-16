@@ -210,6 +210,12 @@ function requireTeacher(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+// Only school/class labels are public. Never expose students or account data.
+app.get('/api/public/settings', (_req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ schoolName: classData.settings.schoolName, className: classData.settings.className });
+});
+
 // --- AUTH API ROUTES ---
 
 // Login

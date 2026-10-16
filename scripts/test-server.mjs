@@ -43,6 +43,11 @@ try{
  let login=await call(a,'/auth/login',{method:'POST',body:{username:'gvcn',password:env.INITIAL_ADMIN_PASSWORD}});assert.equal(login.status,200);let token=login.body.token;
  assert.equal((await call(b,'/auth/me',{headers:auth(token)})).status,200,'token survives a different instance');
  let data=await call(a,'/data',{headers:auth(token)});assert.equal(data.body.students.length,0,'no demo students on bootstrap');
+ const settings={...data.body.settings,schoolName:'Trường kiểm thử',className:'Lớp 9A14'};
+ let labels=await call(a,'/data/update',{method:'POST',headers:{...auth(token),'If-Match':data.version},body:{settings}});assert.equal(labels.status,200);
+ const publicLabels=await call(b,'/public/settings');assert.equal(publicLabels.status,200);
+ assert.deepEqual(publicLabels.body,{schoolName:'Trường kiểm thử',className:'Lớp 9A14'});
+ data=await call(a,'/data',{headers:auth(token)});
  const stale=data.version;
  const student={id:'TEST01',fullName:'Học sinh kiểm thử',gender:'Nữ',dob:'01/01/2012',phone:''};
  let write=await call(a,'/data/update',{method:'POST',headers:{...auth(token),'If-Match':data.version},body:{students:[student]}});assert.equal(write.status,200);
@@ -50,6 +55,9 @@ try{
  assert.equal((await call(b,'/data/update',{method:'POST',headers:{...auth(token),'If-Match':stale},body:{students:[]}})).status,409);
  const slogin=await call(a,'/auth/login',{method:'POST',body:{username:'test01',password:'01012012'}});assert.equal(slogin.status,200);
  assert.equal((await call(a,'/data/update',{method:'POST',headers:{...auth(slogin.body.token),'If-Match':other.version},body:{students:[]}})).status,403);
+ const studentChange=await call(a,'/auth/change-password',{method:'POST',headers:auth(slogin.body.token),body:{currentPassword:'01012012',newPassword:'StudentPassword456!'}});assert.equal(studentChange.status,200);
+ assert.equal((await call(b,'/auth/login',{method:'POST',body:{username:'TEST01',password:'StudentPassword456!'}})).status,200);
+ assert.equal((await call(b,'/auth/login',{method:'POST',body:{username:'test01',password:'01012012'}})).status,401);
  const change=await call(a,'/auth/change-password',{method:'POST',headers:auth(token),body:{currentPassword:env.INITIAL_ADMIN_PASSWORD,newPassword:'ChangedTeacher456!'}});assert.equal(change.status,200);const newToken=change.body.token;
  assert.equal((await call(b,'/auth/me',{headers:auth(token)})).status,401,'old session revoked after password change');
  assert.equal((await call(b,'/auth/login',{method:'POST',body:{username:'gvcn',password:'giaovien123'}})).status,401,'default bypass removed');

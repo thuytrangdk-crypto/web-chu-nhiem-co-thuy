@@ -545,6 +545,10 @@ function requireTeacher(req, res, next) {
   }
   next();
 }
+app.get("/api/public/settings", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ schoolName: classData.settings.schoolName, className: classData.settings.className });
+});
 app.post("/api/auth/login", (req, res) => {
   const { username, password } = req.body;
   if (typeof username !== "string" || typeof password !== "string" || !username || !password) {
