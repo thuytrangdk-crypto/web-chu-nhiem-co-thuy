@@ -86,7 +86,8 @@ export interface ImportError {
 // Parse uploaded student Excel file
 export function parseStudentExcel(
   fileData: ArrayBuffer,
-  existingStudents: Student[]
+  existingStudents: Student[],
+  mode: 'append' | 'replace' = 'append'
 ): { validStudents: Student[]; errors: ImportError[] } {
   const workbook = XLSX.read(fileData, { type: 'array' });
   const sheetName = workbook.SheetNames[0];
@@ -126,7 +127,7 @@ export function parseStudentExcel(
     }
     seenIdsInFile.add(cleanId);
 
-    if (existingStudents.some(s => s.id.toUpperCase() === cleanId)) {
+    if (mode === 'append' && existingStudents.some(s => s.id.toUpperCase() === cleanId)) {
       errors.push({ row: rowNum, field: 'Mã học sinh', message: `Mã học sinh ${cleanId} đã tồn tại trong danh sách lớp` });
       return;
     }
@@ -361,3 +362,12 @@ export function exportGradebookToExcel(classData: ClassData, semester: 'HK1' | '
   XLSX.utils.book_append_sheet(wb, ws, `Bang_Diem_${semester}`);
   XLSX.writeFile(wb, `Bang_Diem_${classData.settings.className}_${semester}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
+
+export {
+  exportDisciplineToExcel,
+  formatDateVN,
+  getExportTimeVN,
+  evaluateConductTier,
+  type ExportDisciplineOptions,
+} from './exportDisciplineExcel';
+

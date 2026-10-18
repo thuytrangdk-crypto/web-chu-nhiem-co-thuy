@@ -17,6 +17,7 @@ import {
   User,
   MapPin,
   Calendar,
+  Award,
 } from 'lucide-react';
 import { Student } from '../types';
 import {
@@ -25,6 +26,7 @@ import {
   parseStudentExcel,
   ImportError,
 } from '../utils/excel';
+import { ExportDisciplineModal } from '../components/ExportDisciplineModal';
 
 export const StudentsView: React.FC = () => {
   const {
@@ -48,6 +50,11 @@ export const StudentsView: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isExportDisciplineOpen, setIsExportDisciplineOpen] = useState(false);
+
+  // Import task mode: 'append' (Thêm vào) | 'replace' (Thay thế danh sách)
+  const [importMode, setImportMode] = useState<'append' | 'replace'>('append');
+  const [uploadedFileBuffer, setUploadedFileBuffer] = useState<ArrayBuffer | null>(null);
 
   // Form State for Add/Edit
   const [formData, setFormData] = useState({
@@ -178,7 +185,8 @@ export const StudentsView: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const buffer = event.target?.result as ArrayBuffer;
-      const result = parseStudentExcel(buffer, students);
+      setUploadedFileBuffer(buffer);
+      const result = parseStudentExcel(buffer, students, importMode);
       setImportPreview({
         valid: result.validStudents,
         errors: result.errors,
@@ -187,13 +195,34 @@ export const StudentsView: React.FC = () => {
     reader.readAsArrayBuffer(file);
   };
 
+  const handleModeChange = (newMode: 'append' | 'replace') => {
+    setImportMode(newMode);
+    if (uploadedFileBuffer) {
+      const result = parseStudentExcel(uploadedFileBuffer, students, newMode);
+      setImportPreview({
+        valid: result.validStudents,
+        errors: result.errors,
+      });
+    }
+  };
+
   const handleConfirmImport = async () => {
     if (!importPreview || importPreview.valid.length === 0) return;
+
+    if (importMode === 'replace') {
+      const confirmed = window.confirm(
+        `XÁC NHẬN THAY THẾ DANH SÁCH HỌC SINH:\n\nBạn có chắc chắn muốn thay thế toàn bộ ${students.length} học sinh hiện tại của lớp bằng ${importPreview.valid.length} học sinh mới từ tệp Excel?\n\n• Sơ đồ lớp sẽ tự động giải phóng chỗ ngồi của các học sinh cũ không còn trong danh sách mới.\n• Danh sách tài khoản học sinh sẽ được đồng bộ theo danh sách mới.`
+      );
+      if (!confirmed) return;
+    }
+
     setImporting(true);
     try {
-      await importStudents(importPreview.valid);
+      await importStudents(importPreview.valid, importMode);
       setIsImportModalOpen(false);
       setImportPreview(null);
+      setUploadedFileBuffer(null);
+      setImportMode('append');
     } catch (err: any) {
       showToast(err.message || 'Lỗi nhập dữ liệu', 'error');
     } finally {
@@ -228,6 +257,8 @@ export const StudentsView: React.FC = () => {
             <button
               onClick={() => {
                 setImportPreview(null);
+                setUploadedFileBuffer(null);
+                setImportMode('append');
                 setIsImportModalOpen(true);
               }}
               className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-xl border border-emerald-200 flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -242,6 +273,15 @@ export const StudentsView: React.FC = () => {
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               Xuất Excel
+            </button>
+
+            <button
+              onClick={() => setIsExportDisciplineOpen(true)}
+              className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-xl border border-indigo-200 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              title="Xuất bảng tổng hợp và chi tiết thi đua rèn luyện theo kỳ"
+            >
+              <Award className="w-3.5 h-3.5 text-indigo-600" />
+              Xuất Excel thi đua
             </button>
 
             <button
@@ -573,9 +613,74 @@ export const StudentsView: React.FC = () => {
               </button>
             </div>
 
+            {/* Task Mode Selection */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700">
+                Chọn tác vụ nhập dữ liệu:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleModeChange('append')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    importMode === 'append'
+                      ? 'border-[#3289C7] bg-[#EAF6FF] text-[#1E3A5F] shadow-2xs ring-1 ring-[#3289C7]'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold">Thêm vào danh sách hiện có</span>
+                    <input
+                      type="radio"
+                      name="importTaskMode"
+                      checked={importMode === 'append'}
+                      onChange={() => handleModeChange('append')}
+                      className="text-[#3289C7] focus:ring-[#3289C7] pointer-events-none"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Bổ sung học sinh mới, giữ nguyên {students.length} học sinh hiện tại. Báo lỗi nếu trùng mã học sinh.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleModeChange('replace')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    importMode === 'replace'
+                      ? 'border-amber-500 bg-amber-50 text-amber-950 shadow-2xs ring-1 ring-amber-500'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-900">Thay thế danh sách hiện có</span>
+                    <input
+                      type="radio"
+                      name="importTaskMode"
+                      checked={importMode === 'replace'}
+                      onChange={() => handleModeChange('replace')}
+                      className="text-amber-600 focus:ring-amber-500 pointer-events-none"
+                    />
+                  </div>
+                  <p className="text-[11px] text-amber-800/80 mt-1">
+                    Thay thế toàn bộ danh sách {students.length} học sinh hiện tại bằng danh sách mới từ tệp Excel.
+                  </p>
+                </button>
+              </div>
+
+              {importMode === 'replace' && (
+                <div className="p-2.5 bg-amber-100/70 border border-amber-300/80 rounded-xl text-[11px] text-amber-900 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  <div>
+                    <strong>Cảnh báo tác vụ thay thế:</strong> Danh sách hiện có ({students.length} học sinh) sẽ được thay thế hoàn toàn bằng danh sách trong tệp Excel. Sơ đồ lớp sẽ tự động giải phóng chỗ ngồi của các học sinh cũ không còn trong danh sách mới.
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Dropzone */}
-            <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center hover:border-[#3289C7] transition-colors bg-slate-50">
-              <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+            <div className="border-2 border-dashed border-slate-300 rounded-2xl p-5 text-center hover:border-[#3289C7] transition-colors bg-slate-50">
+              <Upload className="w-7 h-7 text-slate-400 mx-auto mb-1.5" />
               <p className="text-xs font-semibold text-slate-700">
                 Chọn tệp Excel (.xlsx, .xls) chứa danh sách học sinh
               </p>
@@ -586,7 +691,7 @@ export const StudentsView: React.FC = () => {
                 type="file"
                 accept=".xlsx, .xls"
                 onChange={handleFileUpload}
-                className="mt-3 text-xs block mx-auto text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#3289C7] file:text-white hover:file:bg-[#256ea4] cursor-pointer"
+                className="mt-2.5 text-xs block mx-auto text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#3289C7] file:text-white hover:file:bg-[#256ea4] cursor-pointer"
               />
             </div>
 
@@ -670,13 +775,31 @@ export const StudentsView: React.FC = () => {
                 type="button"
                 disabled={!importPreview || importPreview.valid.length === 0 || importing}
                 onClick={handleConfirmImport}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                className={`px-5 py-2 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 ${
+                  importMode === 'replace'
+                    ? 'bg-amber-600 hover:bg-amber-700'
+                    : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
               >
-                {importing ? 'Đang nhập dữ liệu...' : `Xác nhận nhập ${importPreview?.valid.length || 0} học sinh`}
+                {importing
+                  ? 'Đang nhập dữ liệu...'
+                  : importMode === 'replace'
+                  ? `Xác nhận thay thế danh sách (${importPreview?.valid.length || 0} học sinh)`
+                  : `Xác nhận thêm ${importPreview?.valid.length || 0} học sinh`}
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* EXPORT DISCIPLINE MODAL (TEACHER ONLY) */}
+      {isTeacher && (
+        <ExportDisciplineModal
+          isOpen={isExportDisciplineOpen}
+          onClose={() => setIsExportDisciplineOpen(false)}
+          classData={classData}
+          showToast={showToast}
+        />
       )}
     </div>
   );

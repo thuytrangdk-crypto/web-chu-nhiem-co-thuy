@@ -46,8 +46,8 @@ interface AppContextType {
   updateSettings: (settings: AppSettings) => Promise<void>;
   addStudent: (student: Omit<Student, 'seatCode'>) => Promise<void>;
   updateStudent: (student: Student) => Promise<void>;
-  deleteStudent: (studentId: string) => Promise<void>;
-  importStudents: (newStudents: Student[]) => Promise<void>;
+  deleteStudent: (id: string) => Promise<void>;
+  importStudents: (newStudents: Student[], mode?: 'append' | 'replace') => Promise<void>;
 
   updateSeats: (seats: SeatAssignment[]) => Promise<void>;
 
@@ -372,12 +372,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     showToast(`Đã xóa học sinh ${student?.fullName || studentId}`, 'info');
   };
 
-  const importStudents = async (newStudents: Student[]) => {
+  const importStudents = async (newStudents: Student[], mode: 'append' | 'replace' = 'append') => {
     if (!classData) return;
-    const updatedStudents = [...classData.students, ...newStudents];
-    setClassData({ ...classData, students: updatedStudents });
-    await persistChanges({ students: updatedStudents });
-    showToast(`Đã nhập thành công ${newStudents.length} học sinh vào lớp!`, 'success');
+    let updatedStudents: Student[];
+    let updatedSeats = classData.seats;
+
+    if (mode === 'replace') {
+      updatedStudents = newStudents;
+      // When replacing the entire student list, unassign seats that belong to old students
+      const newStudentIdSet = new Set(newStudents.map((s) => s.id));
+      updatedSeats = classData.seats.map((seat) => {
+        if (seat.studentId && !newStudentIdSet.has(seat.studentId)) {
+          return { ...seat, studentId: null };
+        }
+        return seat;
+      });
+    } else {
+      updatedStudents = [...classData.students, ...newStudents];
+    }
+
+    const nextData = {
+      ...classData,
+      students: updatedStudents,
+      seats: updatedSeats,
+    };
+    setClassData(nextData);
+    await persistChanges({ students: updatedStudents, seats: updatedSeats });
+    if (mode === 'replace') {
+      showToast(`Đã thay thế toàn bộ danh sách lớp bằng ${newStudents.length} học sinh mới!`, 'success');
+    } else {
+      showToast(`Đã thêm ${newStudents.length} học sinh vào lớp!`, 'success');
+    }
   };
 
   const updateSeats = async (seats: SeatAssignment[]) => {
