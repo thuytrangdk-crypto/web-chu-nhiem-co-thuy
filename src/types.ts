@@ -19,6 +19,7 @@ export interface Student {
   address?: string;
   notes?: string;
   seatCode?: string; // e.g. D1-B1-T
+  avatar?: string;
 }
 
 export type AttendanceStatus = 'present' | 'excused' | 'unexcused' | 'late';

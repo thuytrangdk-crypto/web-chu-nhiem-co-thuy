@@ -14,8 +14,11 @@ import {
   MinusCircle,
   Plus,
   Trash2,
+  Edit,
+  FileSpreadsheet,
 } from 'lucide-react';
-import { AttendanceStatus } from '../types';
+import { AttendanceStatus, DisciplineRecord } from '../types';
+import { ExportStudentViolationsModal } from './ExportStudentViolationsModal';
 
 export const StudentProfileModal: React.FC = () => {
   const {
@@ -27,6 +30,7 @@ export const StudentProfileModal: React.FC = () => {
     resetStudentPassword,
     deleteDisciplineRecord,
     addDisciplineRecord,
+    updateDisciplineRecord,
     showToast,
   } = useApp();
 
@@ -39,6 +43,8 @@ export const StudentProfileModal: React.FC = () => {
   const [eventRuleId, setEventRuleId] = useState('');
   const [eventDate, setEventDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [eventNote, setEventNote] = useState('');
+  const [editingRecord, setEditingRecord] = useState<DisciplineRecord | null>(null);
+  const [isExportViolationsOpen, setIsExportViolationsOpen] = useState(false);
   const [savingRecord, setSavingRecord] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
 
@@ -115,10 +121,33 @@ export const StudentProfileModal: React.FC = () => {
     }
     setSavingRecord(true);
     try {
-      await addDisciplineRecord({ studentId: student.id, ruleId: rule.id,
-        ruleTitle: rule.title, group: rule.group, points: rule.points,
-        date: eventDate, note: eventNote.trim() });
-      setEventNote('');
+      if (editingRecord) {
+        await updateDisciplineRecord({
+          ...editingRecord,
+          studentId: student.id,
+          ruleId: rule.id,
+          ruleTitle: rule.title,
+          group: rule.group,
+          points: rule.points,
+          date: eventDate,
+          note: eventNote.trim(),
+        });
+        setEditingRecord(null);
+        setEventNote('');
+        showToast('Đã cập nhật sự việc thi đua thành công!', 'success');
+      } else {
+        await addDisciplineRecord({
+          studentId: student.id,
+          ruleId: rule.id,
+          ruleTitle: rule.title,
+          group: rule.group,
+          points: rule.points,
+          date: eventDate,
+          note: eventNote.trim(),
+        });
+        setEventNote('');
+        showToast('Đã lưu ghi nhận sự việc thành công!', 'success');
+      }
     } catch (error: any) {
       showToast(error.message || 'Không thể lưu ghi nhận. Vui lòng thử lại.', 'error');
     } finally {
@@ -198,7 +227,7 @@ export const StudentProfileModal: React.FC = () => {
               }`}
             >
               <Award className="w-4 h-4" />
-              Thi đua
+              Thi đua & Kỷ luật
             </button>
 
             <button
@@ -433,129 +462,270 @@ export const StudentProfileModal: React.FC = () => {
 
           {/* TAB 3: THI ĐUA */}
           {activeTab === 'discipline' && (
-            <div className={`grid grid-cols-1 gap-4 lg:h-full lg:min-h-0 ${isTeacher ? 'lg:grid-cols-[minmax(260px,0.62fr)_minmax(0,1.7fr)]' : ''}`}>
+            <div className={`grid grid-cols-1 gap-4 lg:h-full lg:min-h-0 ${isTeacher ? 'lg:grid-cols-[minmax(280px,0.7fr)_minmax(0,1.6fr)]' : ''}`}>
               {isTeacher && (
-                <form onSubmit={handleSaveRecord} className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col gap-3 min-h-0 lg:h-full">
-                  <h3 className="font-bold text-slate-800 shrink-0">＋ Ghi nhận sự việc</h3>
-                  <div className="space-y-3 min-h-0 lg:flex-1 lg:overflow-y-auto pr-1">
-                  
-                  <div className="grid grid-cols-1 gap-3">
-                    <label className="text-sm font-medium">Ngày xảy ra sự việc
-                      <input type="date" required value={eventDate} disabled={savingRecord} onChange={e => setEventDate(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2" />
-                    </label>
-                    <label className="text-sm font-medium">Quy tắc thi đua
-                      <select required value={eventRuleId} disabled={savingRecord} onChange={e => setEventRuleId(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2">
-                        <option value="">Chọn sự việc / quy tắc</option>
-                        {classData.rules.map(rule => <option key={rule.id} value={rule.id}>{rule.title} ({rule.points > 0 ? '+' : ''}{rule.points} điểm)</option>)}
-                      </select>
-                    </label>
+                <form onSubmit={handleSaveRecord} className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col gap-3 min-h-0 lg:h-full shadow-2xs">
+                  <div className="flex items-center justify-between shrink-0 border-b border-slate-100 pb-2">
+                    <h3 className="font-bold text-slate-800 text-sm">
+                      {editingRecord ? '✏️ Chỉnh sửa sự việc' : '＋ Ghi nhận sự việc'}
+                    </h3>
+                    {editingRecord && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingRecord(null);
+                          setEventNote('');
+                          setEventRuleId('');
+                        }}
+                        className="text-xs text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
+                      >
+                        Hủy sửa
+                      </button>
+                    )}
                   </div>
-                  <label className="block text-sm font-medium">Nội dung ghi nhận / ghi chú
-                    <textarea value={eventNote} disabled={savingRecord} onChange={e => setEventNote(e.target.value)} rows={3} placeholder="Nhập diễn biến sự việc, biện pháp hỗ trợ hoặc lời khen…" className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2" />
-                  </label>
-                  {classData.rules.length === 0 && <p className="text-sm text-amber-800">Chưa có quy tắc thi đua. Hãy thêm quy tắc trong Cài đặt trước.</p>}
+
+                  <div className="space-y-3 min-h-0 flex-1 overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 gap-3">
+                      <label className="text-xs font-semibold text-slate-700">Ngày xảy ra sự việc
+                        <input
+                          type="date"
+                          required
+                          value={eventDate}
+                          disabled={savingRecord}
+                          onChange={e => setEventDate(e.target.value)}
+                          className="mt-1 block w-full rounded-xl border border-slate-300 bg-white p-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#3289C7]"
+                        />
+                      </label>
+                      <label className="text-xs font-semibold text-slate-700">Quy tắc thi đua
+                        <select
+                          required
+                          value={eventRuleId}
+                          disabled={savingRecord}
+                          onChange={e => setEventRuleId(e.target.value)}
+                          className="mt-1 block w-full rounded-xl border border-slate-300 bg-white p-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#3289C7]"
+                        >
+                          <option value="">-- Chọn sự việc / quy tắc --</option>
+                          {classData.rules.map(rule => (
+                            <option key={rule.id} value={rule.id}>
+                              {rule.title} ({rule.points > 0 ? '+' : ''}{rule.points} điểm)
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    <label className="block text-xs font-semibold text-slate-700">Nội dung ghi nhận / ghi chú
+                      <textarea
+                        value={eventNote}
+                        disabled={savingRecord}
+                        onChange={e => setEventNote(e.target.value)}
+                        rows={3}
+                        placeholder="Nhập diễn biến sự việc, biện pháp hỗ trợ hoặc lời khen…"
+                        className="mt-1 block w-full rounded-xl border border-slate-300 bg-white p-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#3289C7]"
+                      />
+                    </label>
+
+                    {classData.rules.length === 0 && (
+                      <p className="text-xs text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                        Chưa có quy tắc thi đua. Hãy thêm quy tắc trong Cài đặt trước.
+                      </p>
+                    )}
                   </div>
-                  <button type="submit" disabled={savingRecord || !eventRuleId || !eventDate} className="shrink-0 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">{savingRecord ? 'Đang lưu…' : 'Lưu ghi nhận sự việc'}</button>
+
+                  <button
+                    type="submit"
+                    disabled={savingRecord || !eventRuleId || !eventDate}
+                    className={`shrink-0 w-full rounded-xl px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer disabled:opacity-50 ${
+                      editingRecord
+                        ? 'bg-amber-600 hover:bg-amber-700'
+                        : 'bg-[#3289C7] hover:bg-[#256ea4]'
+                    }`}
+                  >
+                    {savingRecord
+                      ? 'Đang lưu…'
+                      : editingRecord
+                      ? 'Cập nhật sự việc'
+                      : 'Lưu ghi nhận sự việc'}
+                  </button>
                 </form>
               )}
+
               <section className="flex flex-col min-w-0 lg:min-h-0 gap-3">
-                <div className="shrink-0 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-wrap items-center justify-between gap-4">
-                  <label className="text-xs font-bold text-slate-400">KỲ ĐÁNH GIÁ (THÁNG)
-                    <select aria-label="Kỳ đánh giá theo tháng" value={historyFrom ? historyFrom.slice(0,7) : ''} onChange={e => {
-                      const month = e.target.value;
-                      if (!month) { setHistoryFrom(''); setHistoryTo(''); return; }
-                      const [y,m] = month.split('-').map(Number);
-                      setHistoryFrom(`${month}-01`);
-                      setHistoryTo(`${month}-${new Date(y,m,0).getDate()}`);
-                    }} className="block mt-2 rounded-xl border border-slate-300 bg-white p-2 text-sm text-slate-800 font-semibold">
-                      <option value="">Tất cả thời gian</option>
-                      {Array.from(new Set(classData.disciplineRecords.filter(r => r.studentId === student.id).map(r => r.date.slice(0,7)))).sort().reverse().map(month => <option key={month} value={month}>Tháng {month.slice(5)}/{month.slice(0,4)}</option>)}
-                    </select>
-                  </label>
-                  <div className="flex items-center gap-5 ml-auto">
-                    <div className="text-right">
-                      <div className="text-xs font-bold text-slate-400">ĐIỂM THI ĐUA CÒN LẠI</div>
-                      <div className="mt-1 text-2xl font-extrabold text-emerald-600">{currentTotalScore} <span className="text-sm text-slate-400">/ {startingScore}đ</span></div>
-                      <div className="text-xs text-slate-500 mt-1">Điểm trừ: <strong className="text-rose-600">{studentDiscipline.filter(r => r.points < 0).reduce((n,r) => n+r.points,0)}đ</strong> · Thưởng: <strong className="text-emerald-600">+{studentDiscipline.filter(r => r.points > 0).reduce((n,r) => n+r.points,0)}đ</strong></div>
+                {/* Header card with period filter & Export Violations button */}
+                <div className="shrink-0 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        KỲ ĐÁNH GIÁ:
+                      </label>
+                      <select
+                        aria-label="Kỳ đánh giá theo tháng"
+                        value={historyFrom ? historyFrom.slice(0, 7) : ''}
+                        onChange={e => {
+                          const month = e.target.value;
+                          if (!month) { setHistoryFrom(''); setHistoryTo(''); return; }
+                          const [y, m] = month.split('-').map(Number);
+                          setHistoryFrom(`${month}-01`);
+                          setHistoryTo(`${month}-${new Date(y, m, 0).getDate()}`);
+                        }}
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-[#3289C7]"
+                      >
+                        <option value="">Tất cả thời gian</option>
+                        {Array.from(
+                          new Set(
+                            classData.disciplineRecords
+                              .filter(r => r.studentId === student.id)
+                              .map(r => r.date.slice(0, 7))
+                          )
+                        )
+                          .sort()
+                          .reverse()
+                          .map(month => (
+                            <option key={month} value={month}>
+                              Tháng {month.slice(5)}/{month.slice(0, 4)}
+                            </option>
+                          ))}
+                      </select>
                     </div>
-                    <div className="border-l border-slate-200 pl-5 text-right">
-                      <div className="text-xs font-bold text-slate-400">XẾP LOẠI RÈN LUYỆN</div>
-                      <div className="mt-1 text-xl font-bold text-emerald-600">{finalTier}</div>
+
+                    {isTeacher && (
+                      <button
+                        type="button"
+                        onClick={() => setIsExportViolationsOpen(true)}
+                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-bold rounded-xl border border-rose-200 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer shrink-0"
+                        title="Xuất báo cáo Excel các lỗi vi phạm của học sinh này"
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Xuất Excel vi phạm</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Points and Conduct Tiers */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/80 gap-4 flex-wrap">
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        ĐIỂM THI ĐUA CÒN LẠI
+                      </div>
+                      <div className="text-2xl font-black text-emerald-600">
+                        {currentTotalScore}{' '}
+                        <span className="text-xs text-slate-400 font-normal">/ {startingScore}đ</span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">
+                        Điểm trừ: <strong className="text-rose-600">-{studentDiscipline.filter(r => r.points < 0).reduce((n, r) => n + Math.abs(r.points), 0)}đ</strong> · Thưởng: <strong className="text-emerald-600">+{studentDiscipline.filter(r => r.points > 0).reduce((n, r) => n + r.points, 0)}đ</strong>
+                      </div>
+                    </div>
+
+                    <div className="text-right border-l border-slate-200 pl-4">
+                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        XẾP LOẠI RÈN LUYỆN
+                      </div>
+                      <div className={`mt-0.5 text-lg font-black ${tierColor.split(' ')[0]}`}>
+                        {finalTier}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        {customAdjustment ? 'Đã điều chỉnh' : 'Theo quy tắc lớp'}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-              <div className="flex flex-col min-h-0 flex-1">
-                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Lịch sử sự việc thi đua & kỷ luật ({studentDiscipline.length})
-                </h4>
-                <div tabIndex={0} aria-label="Lịch sử ghi nhận sự việc" className="min-h-0 max-h-[55vh] lg:max-h-none flex-1 overflow-auto overscroll-contain scroll-smooth rounded-xl focus:outline-sky-500" style={{ scrollbarGutter: 'stable', scrollbarWidth: 'thin' }}>
-                {studentDiscipline.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-slate-400 bg-slate-50 rounded-xl">
-                    Chưa có sự việc thi đua nào được ghi nhận cho học sinh này.
-                  </div>
-                ) : (
-                  <div className="border border-slate-200 rounded-xl shadow-xs">
-                    <table className="w-full min-w-[560px] text-xs text-left">
-                      <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
-                        <tr>
-                          <th className="py-2.5 px-3">Ngày</th>
-                          <th className="py-2.5 px-3">Sự việc</th>
-                          
-                          <th className="py-2.5 px-3 text-right">Điểm (+/-)</th>
-                          
-                          {isTeacher && <th className="py-2.5 px-3 text-center">Xóa</th>}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {studentDiscipline
-                          .slice()
-                          .sort((a, b) => b.date.localeCompare(a.date))
-                          .map((rec) => (
-                            <tr key={rec.id} className="hover:bg-slate-50/60">
-                              <td className="py-2.5 px-3 font-mono font-medium text-slate-700">
-                                {rec.date}
-                              </td>
-                              <td className="py-2.5 px-3 font-semibold text-slate-800">
-                                {rec.ruleTitle}
-                                {rec.note && <div className="mt-1 text-slate-400 font-normal whitespace-pre-wrap break-words">{rec.note}</div>}
-                              </td>
-                              
-                              <td
-                                className={`py-2.5 px-3 text-right font-mono font-bold ${
-                                  rec.points > 0 ? 'text-emerald-600' : 'text-rose-600'
-                                }`}
-                              >
-                                {rec.points > 0 ? `+${rec.points}` : rec.points}
-                              </td>
-                              
-                              {isTeacher && (
-                                <td className="py-2.5 px-3 text-center">
-                                  <button
-                                    onClick={() => {
-                                      if (
-                                        window.confirm(
-                                          `Xác nhận xóa ghi nhận sự việc "${rec.ruleTitle}" của học sinh này?`
-                                        )
-                                      ) {
-                                        deleteDisciplineRecord(rec.id);
-                                      }
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors cursor-pointer"
-                                    title="Xóa sự việc"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
+                {/* History table with separate scrollbar */}
+                <div className="flex flex-col min-h-0 flex-1">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Lịch sử sự việc thi đua & kỷ luật ({studentDiscipline.length})
+                  </h4>
+                  <div
+                    tabIndex={0}
+                    aria-label="Lịch sử ghi nhận sự việc"
+                    className="min-h-0 max-h-[55vh] lg:max-h-none flex-1 overflow-auto overscroll-contain scroll-smooth rounded-xl focus:outline-sky-500 border border-slate-200 shadow-xs"
+                    style={{ scrollbarGutter: 'stable', scrollbarWidth: 'thin' }}
+                  >
+                    {studentDiscipline.length === 0 ? (
+                      <div className="text-center py-8 text-xs text-slate-400 bg-slate-50 rounded-xl">
+                        Chưa có sự việc thi đua nào được ghi nhận cho học sinh này trong kỳ đang chọn.
+                      </div>
+                    ) : (
+                      <table className="w-full min-w-[560px] text-xs text-left">
+                        <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                          <tr>
+                            <th className="py-2.5 px-3">Ngày</th>
+                            <th className="py-2.5 px-3">Sự việc</th>
+                            <th className="py-2.5 px-3 text-right">Điểm (+/-)</th>
+                            {isTeacher && <th className="py-2.5 px-3 text-center w-20">Thao tác</th>}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {studentDiscipline
+                            .slice()
+                            .sort((a, b) => b.date.localeCompare(a.date))
+                            .map((rec) => (
+                              <tr key={rec.id} className="hover:bg-slate-50/60">
+                                <td className="py-2.5 px-3 font-mono font-medium text-slate-700 whitespace-nowrap">
+                                  {rec.date}
                                 </td>
-                              )}
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
+                                <td className="py-2.5 px-3 font-semibold text-slate-800">
+                                  <div>{rec.ruleTitle}</div>
+                                  {rec.note && (
+                                    <div className="mt-1 text-slate-400 font-normal whitespace-pre-wrap break-words text-[11px]">
+                                      {rec.note}
+                                    </div>
+                                  )}
+                                </td>
+                                <td
+                                  className={`py-2.5 px-3 text-right font-mono font-bold whitespace-nowrap ${
+                                    rec.points > 0 ? 'text-emerald-600' : 'text-rose-600'
+                                  }`}
+                                >
+                                  {rec.points > 0 ? `+${rec.points}` : rec.points}
+                                </td>
+                                {isTeacher && (
+                                  <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingRecord(rec);
+                                          setEventDate(rec.date);
+                                          setEventRuleId(rec.ruleId);
+                                          setEventNote(rec.note || '');
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-[#3289C7] rounded transition-colors cursor-pointer"
+                                        title="Chỉnh sửa sự việc này"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (
+                                            window.confirm(
+                                              `Xác nhận xóa ghi nhận sự việc "${rec.ruleTitle}" của học sinh này?`
+                                            )
+                                          ) {
+                                            deleteDisciplineRecord(rec.id);
+                                            if (editingRecord?.id === rec.id) {
+                                              setEditingRecord(null);
+                                              setEventNote('');
+                                              setEventRuleId('');
+                                            }
+                                          }
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors cursor-pointer"
+                                        title="Xóa sự việc này"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                )}
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
-                )}
                 </div>
-              </div>
               </section>
             </div>
           )}
@@ -639,6 +809,18 @@ export const StudentProfileModal: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* EXPORT VIOLATIONS MODAL (TEACHER ONLY) */}
+      {isTeacher && (
+        <ExportStudentViolationsModal
+          isOpen={isExportViolationsOpen}
+          onClose={() => setIsExportViolationsOpen(false)}
+          classData={classData}
+          student={student}
+          showToast={showToast}
+        />
+      )}
     </div>
   );
 };
+

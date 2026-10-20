@@ -12,14 +12,18 @@ import {
   Filter,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
   X,
   Phone,
   User,
   MapPin,
   Calendar,
   Award,
+  LayoutGrid,
+  List,
+  Clock,
 } from 'lucide-react';
-import { Student } from '../types';
+import { Student, AttendanceStatus } from '../types';
 import {
   downloadStudentTemplate,
   exportStudentsToExcel,
@@ -27,6 +31,7 @@ import {
   ImportError,
 } from '../utils/excel';
 import { ExportDisciplineModal } from '../components/ExportDisciplineModal';
+import { isViolationRecord } from '../utils/exportStudentViolations';
 
 export const StudentsView: React.FC = () => {
   const {
@@ -42,9 +47,13 @@ export const StudentsView: React.FC = () => {
 
   const isTeacher = user?.role === 'teacher';
 
+  // Display mode: 'grid' (Dạng thẻ - default) | 'table' (Dạng bảng)
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+
   const [search, setSearch] = useState('');
   const [genderFilter, setGenderFilter] = useState<'all' | 'Nam' | 'Nữ'>('all');
   const [seatFilter, setSeatFilter] = useState<'all' | 'seated' | 'unseated'>('all');
+  const [violationPeriod, setViolationPeriod] = useState<'all' | 'month' | 'week'>('all');
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -91,6 +100,49 @@ export const StudentsView: React.FC = () => {
       return matchSearch && matchGender && matchSeat;
     });
   }, [students, search, genderFilter, seatFilter]);
+
+  // Today's date in Vietnam timezone (YYYY-MM-DD)
+  const todayVN = useMemo(() => {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+  }, []);
+
+  // Today's attendance mapped by studentId
+  const todayAttendanceMap = useMemo(() => {
+    const map = new Map<string, AttendanceStatus>();
+    (classData?.attendance || []).forEach((a) => {
+      if (a.date === todayVN) {
+        map.set(a.studentId, a.status);
+      }
+    });
+    return map;
+  }, [classData?.attendance, todayVN]);
+
+  // Violation count per student based on the selected violationPeriod
+  const studentViolationCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const records = classData?.disciplineRecords || [];
+    const [currY, currM, currD] = todayVN.split('-').map(Number);
+    const currentMonthStr = `${currY}-${String(currM).padStart(2, '0')}`;
+
+    // Calculate current week bounds (Monday to Sunday)
+    const current = new Date(currY, currM - 1, currD);
+    const day = current.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    const monDate = new Date(currY, currM - 1, currD + diffToMonday);
+    const sunDate = new Date(currY, currM - 1, currD + diffToMonday + 6);
+    const toYMD = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const weekStart = toYMD(monDate);
+    const weekEnd = toYMD(sunDate);
+
+    records.forEach((rec) => {
+      if (!isViolationRecord(rec)) return;
+      if (violationPeriod === 'month' && !rec.date.startsWith(currentMonthStr)) return;
+      if (violationPeriod === 'week' && (rec.date < weekStart || rec.date > weekEnd)) return;
+      map.set(rec.studentId, (map.get(rec.studentId) || 0) + 1);
+    });
+    return map;
+  }, [classData?.disciplineRecords, todayVN, violationPeriod]);
 
   if (!classData) return null;
 
@@ -295,8 +347,8 @@ export const StudentsView: React.FC = () => {
         )}
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
+      {/* Filter, Search, and View Mode Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
         <div className="relative flex-1 max-w-sm">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
@@ -317,7 +369,7 @@ export const StudentsView: React.FC = () => {
           <select
             value={genderFilter}
             onChange={(e) => setGenderFilter(e.target.value as any)}
-            className="text-xs px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700"
+            className="text-xs px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#3289C7]"
           >
             <option value="all">Tất cả giới tính</option>
             <option value="Nam">Nam</option>
@@ -327,117 +379,314 @@ export const StudentsView: React.FC = () => {
           <select
             value={seatFilter}
             onChange={(e) => setSeatFilter(e.target.value as any)}
-            className="text-xs px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700"
+            className="text-xs px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#3289C7]"
           >
             <option value="all">Tất cả chỗ ngồi</option>
             <option value="seated">Đã có chỗ ngồi</option>
             <option value="unseated">Chưa xếp chỗ</option>
           </select>
+
+          {/* Period selector for violation counts on cards */}
+          <select
+            value={violationPeriod}
+            onChange={(e) => setViolationPeriod(e.target.value as any)}
+            className="text-xs px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#3289C7]"
+            title="Chọn khoảng thời gian tính số lượt vi phạm trên thẻ"
+          >
+            <option value="all">Vi phạm: Toàn năm học</option>
+            <option value="month">Vi phạm: Tháng này</option>
+            <option value="week">Vi phạm: Tuần này</option>
+          </select>
+
+          {/* View Mode Toggle (Dạng thẻ / Dạng bảng) */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'grid'
+                  ? 'bg-white text-[#1E3A5F] shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Chuyển sang chế độ xem dạng thẻ (Mặc định)"
+            >
+              <LayoutGrid className="w-3.5 h-3.5 text-[#3289C7]" />
+              <span className="hidden sm:inline">Dạng thẻ</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-white text-[#1E3A5F] shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Chuyển sang chế độ xem dạng bảng"
+            >
+              <List className="w-3.5 h-3.5 text-slate-600" />
+              <span className="hidden sm:inline">Dạng bảng</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Students Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-2xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#FAFDFE] border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
-              <tr>
-                <th className="py-3 px-4 w-12 text-center">STT</th>
-                <th className="py-3 px-4">Mã HS</th>
-                <th className="py-3 px-4">Họ và tên</th>
-                <th className="py-3 px-4">Giới tính</th>
-                <th className="py-3 px-4">Ngày sinh</th>
-                <th className="py-3 px-4">Số điện thoại</th>
-                <th className="py-3 px-4">Chỗ ngồi</th>
-                <th className="py-3 px-4 text-center">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredStudents.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400">
-                    Không tìm thấy học sinh nào phù hợp với bộ lọc tìm kiếm.
-                  </td>
-                </tr>
-              ) : (
-                filteredStudents.map((student, idx) => (
-                  <tr key={student.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3 px-4 text-center font-mono text-slate-400">
-                      {idx + 1}
-                    </td>
-                    <td className="py-3 px-4 font-mono font-bold text-slate-700">
-                      {student.id}
-                    </td>
-                    <td className="py-3 px-4">
-                      <button
-                        onClick={() => openStudentProfile(student.id)}
-                        className="font-bold text-[#3289C7] hover:underline text-left cursor-pointer"
+      {/* VIEW 1: DẠNG THẺ (GRID) - MẶC ĐỊNH */}
+      {viewMode === 'grid' && (
+        <div>
+          {filteredStudents.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center text-slate-400">
+              Không tìm thấy học sinh nào phù hợp với bộ lọc tìm kiếm.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {filteredStudents.map((student) => {
+                const todayStatus = todayAttendanceMap.get(student.id);
+                const violationCount = studentViolationCountMap.get(student.id) || 0;
+                const initialLetter = student.fullName.trim().charAt(0).toUpperCase();
+
+                return (
+                  <div
+                    key={student.id}
+                    onClick={() => openStudentProfile(student.id)}
+                    className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-[#3289C7]/60 transition-all cursor-pointer p-4 relative flex flex-col justify-between group select-none"
+                  >
+                    {/* Top right red warning indicator badge if has violations */}
+                    {violationCount > 0 && (
+                      <div
+                        className="absolute top-2 right-2 w-5 h-5 rounded-md bg-rose-500 text-white flex items-center justify-center shadow-xs"
+                        title={`${student.fullName} có ${violationCount} lượt vi phạm trong kỳ đang chọn`}
                       >
-                        {student.fullName}
-                      </button>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${
-                          student.gender === 'Nam'
-                            ? 'bg-sky-50 text-sky-800'
-                            : 'bg-rose-50 text-rose-800'
-                        }`}
-                      >
-                        {student.gender}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-mono text-slate-600">
-                      {student.dob}
-                    </td>
-                    <td className="py-3 px-4 font-mono text-slate-600">
-                      {student.phone}
-                    </td>
-                    <td className="py-3 px-4">
-                      {student.seatCode ? (
-                        <span className="font-mono text-xs font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
-                          {student.seatCode}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 italic">Chưa xếp</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
+                        <AlertTriangle className="w-3 h-3" />
+                      </div>
+                    )}
+
+                    {/* Quick Teacher Actions on top left */}
+                    {isTeacher && (
+                      <div className="absolute top-2 left-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                         <button
-                          onClick={() => openStudentProfile(student.id)}
-                          className="p-1.5 text-slate-500 hover:text-[#3289C7] hover:bg-sky-50 rounded-lg transition-colors cursor-pointer"
-                          title="Xem hồ sơ chi tiết"
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEdit(student);
+                          }}
+                          className="p-1 text-slate-500 hover:text-[#3289C7] bg-white/95 hover:bg-slate-50 rounded-md border border-slate-200 shadow-2xs transition-colors cursor-pointer"
+                          title="Chỉnh sửa thông tin học sinh"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Edit className="w-3 h-3" />
                         </button>
-                        {isTeacher && (
-                          <>
-                            <button
-                              onClick={() => handleOpenEdit(student)}
-                              className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                              title="Chỉnh sửa thông tin"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(student)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                              title="Xóa học sinh"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(student);
+                          }}
+                          className="p-1 text-slate-400 hover:text-rose-600 bg-white/95 hover:bg-rose-50 rounded-md border border-slate-200 shadow-2xs transition-colors cursor-pointer"
+                          title="Xóa học sinh"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Top content: Avatar, Name, and Meta */}
+                    <div className="pt-1">
+                      {/* Avatar initial squircle */}
+                      <div className="w-14 h-14 rounded-2xl bg-[#EAF6FF] border border-[#CDE5F8] text-[#1E3A5F] font-black text-xl flex items-center justify-center mx-auto shadow-2xs group-hover:scale-105 transition-transform">
+                        {student.avatar ? (
+                          <img
+                            src={student.avatar}
+                            alt={student.fullName}
+                            className="w-full h-full object-cover rounded-2xl"
+                          />
+                        ) : (
+                          <span>{initialLetter}</span>
                         )}
                       </div>
+
+                      {/* Full Name in bold uppercase */}
+                      <h3
+                        className="font-extrabold text-[#1E3A5F] text-xs sm:text-sm text-center mt-3 tracking-tight line-clamp-2 min-h-[2.25rem] flex items-center justify-center uppercase group-hover:text-[#3289C7] transition-colors leading-tight px-1"
+                        title={student.fullName}
+                      >
+                        {student.fullName}
+                      </h3>
+
+                      {/* Sub-row: Gender, DOB, and Student ID */}
+                      <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 mt-1 flex-wrap">
+                        <span
+                          className={
+                            student.gender === 'Nữ'
+                              ? 'text-rose-600 font-semibold'
+                              : 'text-sky-600 font-semibold'
+                          }
+                        >
+                          {student.gender}
+                        </span>
+                        <span className="text-slate-300">·</span>
+                        <span className="font-mono text-slate-600">{student.dob}</span>
+                        <span className="text-slate-300">·</span>
+                        <span
+                          className="font-mono font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]"
+                          title="Mã hồ sơ học sinh"
+                        >
+                          {student.id}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Status Row: Attendance Today & Violations */}
+                    <div className="flex items-center justify-between text-xs pt-3 mt-3 border-t border-slate-100">
+                      {/* Attendance today status */}
+                      <div>
+                        {todayStatus === 'present' ? (
+                          <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3 text-emerald-600" /> Có mặt
+                          </span>
+                        ) : todayStatus === 'late' ? (
+                          <span className="text-[11px] text-amber-700 font-semibold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-amber-600" /> Đi trễ
+                          </span>
+                        ) : todayStatus === 'excused' ? (
+                          <span className="text-[11px] text-sky-700 font-semibold bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md">
+                            Có phép
+                          </span>
+                        ) : todayStatus === 'unexcused' ? (
+                          <span className="text-[11px] text-rose-700 font-semibold bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
+                            Không phép
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-md">
+                            Chưa điểm danh
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Violations count */}
+                      <div>
+                        {violationCount > 0 ? (
+                          <span className="text-[11px] font-bold text-rose-600 flex items-center gap-1 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                            <AlertTriangle className="w-3 h-3 text-rose-500" />
+                            {violationCount}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">
+                            0 vi phạm
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW 2: DẠNG BẢNG (TABLE) */}
+      {viewMode === 'table' && (
+        <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-2xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-[#FAFDFE] border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+                <tr>
+                  <th className="py-3 px-4 w-12 text-center">STT</th>
+                  <th className="py-3 px-4">Mã HS</th>
+                  <th className="py-3 px-4">Họ và tên</th>
+                  <th className="py-3 px-4">Giới tính</th>
+                  <th className="py-3 px-4">Ngày sinh</th>
+                  <th className="py-3 px-4">Số điện thoại</th>
+                  <th className="py-3 px-4">Chỗ ngồi</th>
+                  <th className="py-3 px-4 text-center">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredStudents.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-10 text-center text-slate-400">
+                      Không tìm thấy học sinh nào phù hợp với bộ lọc tìm kiếm.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredStudents.map((student, idx) => (
+                    <tr key={student.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3 px-4 text-center font-mono text-slate-400">
+                        {idx + 1}
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-slate-700">
+                        {student.id}
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => openStudentProfile(student.id)}
+                          className="font-bold text-[#3289C7] hover:underline text-left cursor-pointer"
+                        >
+                          {student.fullName}
+                        </button>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${
+                            student.gender === 'Nam'
+                              ? 'bg-sky-50 text-sky-800'
+                              : 'bg-rose-50 text-rose-800'
+                          }`}
+                        >
+                          {student.gender}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-mono text-slate-600">
+                        {student.dob}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-slate-600">
+                        {student.phone}
+                      </td>
+                      <td className="py-3 px-4">
+                        {student.seatCode ? (
+                          <span className="font-mono text-xs font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
+                            {student.seatCode}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic">Chưa xếp</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => openStudentProfile(student.id)}
+                            className="p-1.5 text-slate-500 hover:text-[#3289C7] hover:bg-sky-50 rounded-lg transition-colors cursor-pointer"
+                            title="Xem hồ sơ chi tiết"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {isTeacher && (
+                            <>
+                              <button
+                                onClick={() => handleOpenEdit(student)}
+                                className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                                title="Chỉnh sửa thông tin"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(student)}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                title="Xóa học sinh"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ADD / EDIT STUDENT MODAL */}
       {(isAddModalOpen || editingStudent) && isTeacher && (
